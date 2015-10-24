@@ -31,7 +31,7 @@ module Orangetheses
           dir = Dir.mktmpdir(nil, @dir)
           dirs << dir
         end
-        File.open(File.join(dir, "#{i}.xml"), 'w') do |f| 
+        File.open(File.join(dir, "#{i}.xml"), 'w') do |f|
           f.write(record.metadata)
         end
       end
@@ -39,14 +39,6 @@ module Orangetheses
     end
 
     private
-
-    def write_record_to_tmp_file(record)
-
-      f = ::Tempfile.new(['orangetheses','.xml'], @dir)
-      f.write(record.metadata)
-      f.close
-      f.path
-    end
 
     def client
       @client ||= OAI::Client.new @server, headers: {
