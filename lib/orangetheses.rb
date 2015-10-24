@@ -3,7 +3,7 @@ require 'orangetheses/version'
 module Orangetheses
   SET = 'hdl_88435_dsp019c67wm88m'
   PMH_SERVER = 'http://dataspace.princeton.edu/oai/'
-  TEST_SERVER = 'http://asdspace300l.princeton.edu/oai/'
+  PMH_SERVER = 'http://asdspace300l.princeton.edu/oai/' if $test
   METADATA_PREFIX = 'oai_dc'
 
   autoload :Harvester, 'orangetheses/harvester'

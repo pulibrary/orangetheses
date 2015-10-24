@@ -2,13 +2,17 @@ $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'orangetheses'
 require 'pry'
 
+$test = true
+
 RSpec.configure do |config|
   config.color = true
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true
-  config.exclusion_filter = { ruby: lambda { |version|
-    RUBY_VERSION.to_s !~ /^#{version}/
-  } }
+  config.exclusion_filter = {
+    ruby: lambda { |version|
+      RUBY_VERSION.to_s !~ /^#{version}/
+    }
+  }
 end
 
 def fixture_path(filename)
