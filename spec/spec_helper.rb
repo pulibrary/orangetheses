@@ -2,7 +2,7 @@ $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'orangetheses'
 require 'pry'
 
-$test = true
+# $test = true
 
 RSpec.configure do |config|
   config.color = true

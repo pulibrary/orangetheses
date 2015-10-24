@@ -16,17 +16,38 @@ module Orangetheses
                    metadata_prefix: METADATA_PREFIX,
                    verb: "ListRecords",
                    set: SET)
-      params = binding.local_variables
-      params.each { |p| instance_variable_set("@#{p.to_s}", eval(p.to_s))}
+      # Cheaply write each karg in an i. var. with the same name
+      binding.local_variables.each do |p|
+        instance_variable_set("@#{p.to_s}", eval(p.to_s))
+      end
     end
 
-    # @return [Array<String, Symbol>] A list of paths to the files
+    # @return [Array<String>] A list of tmp directories containing metadata records
     def harvest_all
-      # use @dir here
+      dirs = []
+      dir = nil
+      client.list_records.full.each_with_index do |record, i|
+        if i % 1000 == 0
+          dir = Dir.mktmpdir(nil, @dir)
+          dirs << dir
+        end
+        File.open(File.join(dir, "#{i}.xml"), 'w') do |f| 
+          f.write(record.metadata)
+        end
+      end
+      dirs
     end
 
     private
-    
+
+    def write_record_to_tmp_file(record)
+
+      f = ::Tempfile.new(['orangetheses','.xml'], @dir)
+      f.write(record.metadata)
+      f.close
+      f.path
+    end
+
     def client
       @client ||= OAI::Client.new @server, headers: {
         metadataPrefix: @metadata_prefix,
