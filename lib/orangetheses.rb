@@ -7,5 +7,6 @@ module Orangetheses
   METADATA_PREFIX = 'oai_dc'
 
   autoload :Harvester, 'orangetheses/harvester'
+  autoload :Indexer, 'orangetheses/indexer'
 
 end

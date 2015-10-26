@@ -5,11 +5,15 @@ module Orangetheses
 
     let(:another_server) { 'http://example.edu/oai/' }
 
-    describe '#harvest_all' do
-      it 'does' do
-        subject.harvest_all
-      end
+    # describe '#harvest_all' do
+    #   it 'does' do
+    #     subject.harvest_all
+    #   end
+    # end
 
+    describe '#index_all' do
+      xit 'does' do
+      end
     end
 
     describe '#_client' do
