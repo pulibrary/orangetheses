@@ -60,7 +60,7 @@ module Orangetheses
       h = {
         'id' => id(dc_elements),
         'title_display' => title(dc_elements),
-        'title_sort' => title(dc_elements),
+        'title_sort' => title_sort(dc_elements),
         'pub_date_display' => date,
         'pub_date_start_sort' => date,
         'pub_date_end_sort' => date,
@@ -89,6 +89,14 @@ module Orangetheses
     def title(dc_elements)
       titles = dc_elements.select { |e| e.name == 'title' }
       titles.empty? ? nil : titles.first.text
+    end
+
+    def title_sort(dc_elements)
+      titles = dc_elements.select { |e| e.name == 'title' }
+      title = titles.empty? ? nil : titles.first.text
+      unless title.nil?
+        title.downcase.gsub(/[^\p{Alnum}\s]/, '').gsub(/^(a|an|the)\s/, '').gsub(/\s/,'')
+      end
     end
 
     def ark(dc_elements)
