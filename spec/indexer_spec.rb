@@ -129,7 +129,6 @@ module Orangetheses
         expect(h).to include('author_sort' => 'Oswald, Clara')
         expect(h).to include('advisor_display' => 'Baker, Tom')
         expect(h).to include('author_s' => ['Oswald, Clara', 'Baker, Tom'])
-        expect(h['summary_note']).to eq 'Soon, I expect. Or later. One of those.'
       end
       it 'but leaves others out' do
         expect(h).to_not have_key('date')

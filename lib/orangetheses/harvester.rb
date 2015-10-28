@@ -26,7 +26,7 @@ module Orangetheses
     def harvest_all
       dirs = []
       dir = nil
-      client.list_records.full.each_with_index do |record, i|
+      client.list_records(headers).full.each_with_index do |record, i|
         if i % 1000 == 0
           dir = Dir.mktmpdir(nil, @dir)
           dirs << dir
@@ -40,19 +40,21 @@ module Orangetheses
 
     # @return [Array<String>]
     def index_all(indexer)
-      client.list_records.full.each_with_index do |record, i|
+      client.list_records(headers).full.each_with_index do |record, i|
         indexer.index(record.metadata)
       end
     end
 
     private
 
-    def client
-      @client ||= OAI::Client.new @server, headers: {
+    def headers
+      {
         metadataPrefix: @metadata_prefix,
-        verb: @verb,
         set: @set
       }
+    end
+    def client
+      @client ||= OAI::Client.new @server
     end
 
   end
