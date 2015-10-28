@@ -20,7 +20,7 @@ module Orangetheses
       'language_facet' => 'English'
     }
 
-    def initialize(solr_server)
+    def initialize(solr_server=nil)
       solr_server = 'http://localhost:8983/solr' if solr_server.nil?
       @solr = RSolr.connect(url: solr_server)
       @logger = Logger.new(STDOUT)
@@ -32,20 +32,16 @@ module Orangetheses
     def index(metadata_element)
       begin
         dc_elements = pull_dc_elements(metadata_element)
-        if thesis?(dc_elements)
-          doc = build_hash(dc_elements)
-          @logger.info("Adding #{doc['id']}")
-          @solr.add(doc, add_attributes: { commitWithin: 10 })
-        else
-          @logger.info("Not a thesis")
-        end
+        doc = build_hash(dc_elements)
+        @logger.info("Adding #{doc['id']}")
+        @solr.add(doc, add_attributes: { commitWithin: 10 })
       rescue NoMethodError => e
         @logger.error(e.to_s)
         @logger.error(metadata_element)
       rescue Exception => e
         @logger.error(e.to_s)
-        @logger.error(metadata_element)
-        @logger.error(e.backtrace)
+        dc_elements.each { |element| @logger.error(element.to_s) }
+        e.backtrace.each { |line| @logger.error(line) }
         exit
       end
 

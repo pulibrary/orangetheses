@@ -26,9 +26,6 @@ module Orangetheses
         subject { described_class.new.send(:client) }
 
         it 'get set for the client' do
-          expect(headers[:metadataPrefix]).to eq METADATA_PREFIX
-          expect(headers[:verb]).to eq 'ListRecords'
-          expect(headers[:set]).to eq SET
           expect(base.to_s).to eq PMH_SERVER
         end
 
@@ -39,9 +36,6 @@ module Orangetheses
         subject { described_class.new(server: another_server).send(:client) }
 
         it "changes the client's params" do
-          expect(headers[:metadataPrefix]).to eq METADATA_PREFIX
-          expect(headers[:verb]).to eq 'ListRecords'
-          expect(headers[:set]).to eq SET
           expect(base.to_s).to eq another_server
         end
 
