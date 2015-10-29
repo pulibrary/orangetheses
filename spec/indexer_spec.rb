@@ -142,6 +142,29 @@ module Orangetheses
       end
     end
 
+    describe 'title_sort' do
+      let(:with_punct) { [ create_element('title', '"Some quote" : Blah blah') ] }
+      let(:with_article) { [ create_element('title', 'A title : blah blah') ] }
+      let(:with_punct_and_article) { [ create_element('title', '"A quote" : blah blah') ] }
+      let(:not_an_article) { [ create_element('title', 'thesis') ] }
+      it 'strips punctuation' do
+        expected = 'somequoteblahblah'
+        expect(subject.send(:title_sort, with_punct)).to eq expected
+      end
+      it 'strips articles' do
+        expected = 'titleblahblah'
+        expect(subject.send(:title_sort, with_article)).to eq expected
+      end
+      it 'strips punctuation and articles' do
+        expected = 'quoteblahblah'
+        expect(subject.send(:title_sort, with_punct_and_article)).to eq expected
+      end
+      it 'leaves words that start with articles alone' do
+        expected = 'thesis'
+        expect(subject.send(:title_sort, not_an_article)).to eq expected
+      end
+    end
+
 
 
   end
