@@ -38,7 +38,13 @@ module Orangetheses
       }
       let(:no_date_elements) { [
           create_element('format', '125 pages'),
-          create_element('foo', 'bar'),
+          create_element('foo', 'bar')
+        ]
+      }
+      let(:just_month_year) { [
+          create_element('format', '126 pages'),
+          create_element('date', '2013-07-10T17:10:21Z'),
+          create_element('date', '2011-06')
         ]
       }
       it 'takes the year of the earliest date' do
@@ -46,6 +52,9 @@ module Orangetheses
       end
       it 'returns nil if there is not a date' do
         expect(subject.send(:choose_date, no_date_elements)).to be_nil
+      end
+      it 'properly processes dates in the YYYY-MM format' do
+        expect(subject.send(:choose_date, just_month_year)).to eq 2011
       end
     end
 
