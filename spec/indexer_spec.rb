@@ -68,6 +68,26 @@ module Orangetheses
       end
     end
 
+    describe '#_author_sort' do
+      let(:elements) { [
+          create_element('creator', 'Beeblebrox, Zaphod'),
+          create_element('creator', 'Prefect, Ford'),
+          create_element('date', '2012-07-10')
+        ]
+      }
+      let(:no_author_sort_element) { [
+          create_element('baz', 'quux'),
+          create_element('foo', 'bar')
+        ]
+      }
+      it 'gets exactly one author_sort if there is one' do
+        expect(subject.send(:author_sort, elements)).to eq 'Beeblebrox, Zaphod'
+      end
+      it 'returns nil if there is not a author_sort' do
+        expect(subject.send(:author_sort, no_author_sort_element)).to be_nil
+      end
+    end
+
     describe '#_ark' do
       let(:elements) { [
           create_element('identifier', 'http://arks.princeton.edu/ark:/88435/dsp013t945q852'),
@@ -81,7 +101,9 @@ module Orangetheses
         ]
       }
       it 'gets the ark if there is one' do
-        expect(subject.send(:ark, elements)).to eq 'http://arks.princeton.edu/ark:/88435/dsp013t945q852'
+        ark = "http://arks.princeton.edu/ark:/88435/dsp013t945q852"
+        expected = %Q({"#{ark}":"#{ark}"})
+        expect(subject.send(:ark, elements)).to eq expected
       end
       it 'returns nil if there is not a ark' do
         expect(subject.send(:ark, no_ark)).to be_nil
@@ -102,7 +124,10 @@ module Orangetheses
         ]
       }
       it 'gets the identifiers if any' do
-        expected = ['7412', 'http://foo.bar']
+        expected = [
+          '{"Other Identifier":"7412"}',
+          '{"Other Identifier":"http://foo.bar"}'
+        ]
         expect(subject.send(:non_ark_ids, elements)).to eq expected
       end
       it 'returns nil if none' do
@@ -126,7 +151,6 @@ module Orangetheses
         expect(h).to include('summary_note_display' => 'Soon, I expect. Or later. One of those.')
         expect(h).to include('rights_reproductions_note_display' => 'Come on!')
         expect(h).to include('author_display' => 'Oswald, Clara')
-        expect(h).to include('author_sort' => 'Oswald, Clara')
         expect(h).to include('advisor_display' => 'Baker, Tom')
         expect(h).to include('author_s' => ['Oswald, Clara', 'Baker, Tom'])
       end
