@@ -2,6 +2,7 @@ require 'rsolr'
 require 'rexml/document'
 require 'date'
 require 'logger'
+require 'json'
 
 module Orangetheses
   class Indexer
@@ -9,7 +10,7 @@ module Orangetheses
     SET = 'Princeton University Senior Theses'
 
     NON_SPECIAL_ELEMENT_MAPPING = {
-      'creator' => ['author_display', 'author_sort', 'author_s'],
+      'creator' => ['author_display', 'author_s'],
       'contributor' => ['advisor_display', 'author_s'],
       'format' => ['description_display'],
       'rights' => ['rights_reproductions_note_display'],
@@ -24,7 +25,11 @@ module Orangetheses
       solr_server = 'http://localhost:8983/solr' if solr_server.nil?
       @solr = RSolr.connect(url: solr_server)
       @logger = Logger.new(STDOUT)
-      @logger.level = Logger::DEBUG
+      @logger.level = Logger::INFO
+      @logger.formatter = proc do |severity, datetime, progname, msg|
+        time = datetime.strftime("%H:%M:%S")
+        "[#{time}] #{severity}: #{msg}\n"
+      end
     end
 
     # @param element  A REXML::Element (because this is what we get from the OAI gem)
@@ -41,19 +46,11 @@ module Orangetheses
       rescue Exception => e
         @logger.error(e.to_s)
         dc_elements.each { |element| @logger.error(element.to_s) }
-        e.backtrace.each { |line| @logger.error(line) }
-        exit
       end
 
     end
 
     private
-
-    def thesis?(dc_elements)
-      # Make sure this is a thesis...something isn't working between our client
-      # and DSpace
-      !dc_elements.select { |e| e.name == 'type' && e.text == SET }.empty?
-    end
 
     def build_hash(dc_elements)
       date = choose_date(dc_elements)
@@ -61,11 +58,12 @@ module Orangetheses
         'id' => id(dc_elements),
         'title_display' => title(dc_elements),
         'title_sort' => title_sort(dc_elements),
+        'author_sort' => author_sort(dc_elements),
         'pub_date_display' => date,
         'pub_date_start_sort' => date,
         'pub_date_end_sort' => date,
         'electronic_access_1display' => ark(dc_elements),
-        'other_number' => non_ark_ids(dc_elements)
+        'standard_no_1display' => non_ark_ids(dc_elements)
       }
       h.merge!(map_non_special_to_solr(dc_elements))
       h.merge!(HARD_CODED_TO_ADD)
@@ -103,19 +101,34 @@ module Orangetheses
       arks = dc_elements.select do |e|
         e.name == 'identifier' && e.text.start_with?('http://arks.princeton')
       end
-      arks.empty? ? nil : arks.first.text
+      arks.empty? ? nil : { arks.first.text => arks.first.text }.to_json.to_s
     end
 
     def non_ark_ids(dc_elements)
       non_ark_ids = dc_elements.select do |e|
         e.name == 'identifier' && !e.text.start_with?('http://arks.princeton')
       end
-      non_ark_ids.empty? ? nil : non_ark_ids.map(&:text)
+      unless non_ark_ids.empty?
+        ids = []
+        non_ark_ids.map(&:text).each do |n|
+          ids << { 'Other Identifier' => n }.to_json.to_s
+        end
+        return ids
+      end
+      nil
     end
 
+
     def id(dc_elements)
-      # meh...
-      ark(dc_elements).nil? ? nil : ark(dc_elements).split('/').last
+      arks = dc_elements.select do |e|
+        e.name == 'identifier' && e.text.start_with?('http://arks.princeton')
+      end
+      arks.empty? ? nil : arks.first.text.split('/').last
+    end
+
+    def author_sort(dc_elements)
+      authors = dc_elements.select { |e| e.name == 'creator' }
+      authors.empty? ? nil : authors.first.text
     end
 
     # this is kind of a mess...
