@@ -1,6 +1,6 @@
 require 'rsolr'
 require 'rexml/document'
-require 'date'
+require 'chronic'
 require 'logger'
 require 'json'
 
@@ -59,6 +59,7 @@ module Orangetheses
         'title_display' => title(dc_elements),
         'title_sort' => title_sort(dc_elements),
         'author_sort' => author_sort(dc_elements),
+        'format' => 'Senior Thesis',
         'pub_date_display' => date,
         'pub_date_start_sort' => date,
         'pub_date_end_sort' => date,
@@ -76,7 +77,7 @@ module Orangetheses
     end
 
     def choose_date(dc_elements)
-      dates = all_date_elements(dc_elements).map { |d| Date.parse(d.text) }
+      dates = all_date_elements(dc_elements).map { |d| Chronic.parse(d.text) }
       dates.empty? ? nil : dates.min.year
     end
 

@@ -31,4 +31,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "pry"
   spec.add_dependency "oai"
   spec.add_dependency "rsolr"
+  spec.add_dependency "chronic"
 end
