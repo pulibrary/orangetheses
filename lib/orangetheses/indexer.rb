@@ -17,7 +17,20 @@ module Orangetheses
       'description' => ['summary_note_display']
     }
 
+    REST_NON_SPECIAL_ELEMENT_MAPPING = {
+      'dc.contributor.author' => ['author_display', 'author_s'],
+      'dc.contributor.advisor' => ['advisor_display', 'author_s'],
+      'dc.contributor' => ['contributor_display', 'author_s'],
+      'pu.department' => ['department_s'],
+      'dc.format.extent' => ['description_display'],
+      'dc.rights.accessRights' => ['rights_reproductions_note_display'],
+      'pu.location' => ['rights_reproductions_note_display'],
+      'pu.date.classyear' => ['class_year_s'],
+      'dc.description.abstract' => ['summary_note_display']
+    }
+
     HARD_CODED_TO_ADD = {
+      'format' => 'Senior Thesis',
       'language_facet' => 'English'
     }
 
@@ -50,6 +63,23 @@ module Orangetheses
 
     end
 
+    # @param doc [Hash] Metadata hash with dc and pu terms
+    # @return  The HTTP response status from Solr (??)
+    def index_hash(doc)
+      begin
+        solr_doc = build_solr_hash(doc)
+        @logger.info("Adding #{solr_doc['id']}")
+        @solr.add(solr_doc, add_attributes: { commitWithin: 10 })
+      rescue NoMethodError => e
+        @logger.error(e.to_s)
+        @logger.error(doc.to_s)
+      rescue Exception => e
+        @logger.error(e.to_s)
+        @logger.error(doc.to_s)
+      end
+
+    end
+
     private
 
     def build_hash(dc_elements)
@@ -69,7 +99,7 @@ module Orangetheses
         'access_facet' => 'Online',
         'electronic_access_1display' => ark(dc_elements),
         'standard_no_1display' => non_ark_ids(dc_elements),
-        'holdings_1display' => holdings
+        'holdings_1display' => online_holding
       }
       h.merge!(map_non_special_to_solr(dc_elements))
       h.merge!(HARD_CODED_TO_ADD)
@@ -110,8 +140,19 @@ module Orangetheses
       arks.empty? ? nil : { arks.first.text => ['arks.princeton.edu'] }.to_json.to_s
     end
 
-    def holdings
+    def online_holding
       "{\"Thesis\":{\"library\":\"Online\", \"location_code\":\"elfthesis\"}}"
+    end
+
+    def physical_holding
+      {
+        'thesis' => {
+          'location' => 'Mudd Manuscript Library',
+          'library' => 'Mudd Manuscript Library',
+          'location_code' => 'mudd',
+          'dspace' => true
+        }
+      }.to_json.to_s
     end
 
     def non_ark_ids(dc_elements)
@@ -119,11 +160,7 @@ module Orangetheses
         e.name == 'identifier' && !e.text.start_with?('http://arks.princeton')
       end
       unless non_ark_ids.empty?
-        ids = []
-        non_ark_ids.map(&:text).each do |n|
-          ids << { 'Other Identifier' => n }.to_json.to_s
-        end
-        return ids
+        return { 'Other identifier' => non_ark_ids.map(&:text) }.to_json.to_s
       end
       nil
     end
@@ -141,6 +178,54 @@ module Orangetheses
       authors.empty? ? nil : authors.first.text
     end
 
+    def build_solr_hash(doc)
+      date = choose_date_hash(doc)
+      h = {
+        'id' => doc['id'],
+        'title_t' => first_or_nil(doc['dc.title']),
+        'title_citation_display' => first_or_nil(doc['dc.title']),
+        'title_display' => first_or_nil(doc['dc.title']),
+        'title_sort' => title_sort_hash(doc['dc.title']),
+        'author_sort' => first_or_nil(doc['dc.contributor.author']),
+        'pub_date_display' => date,
+        'pub_date_start_sort' => date,
+        'pub_date_end_sort' => date,
+        'electronic_access_1display' => ark_hash(doc['dc.identifier.uri']),
+        'standard_no_1display' => non_ark_ids_hash(doc['dc.identifier.other']),
+      }
+      h.merge!(map_rest_non_special_to_solr(doc))
+      h.merge!(holdings_access(doc))
+      h.merge!(HARD_CODED_TO_ADD)
+      h
+    end
+
+    def choose_date_hash(doc)
+      dates = all_date_elements_hash(doc).map { |k,v| Chronic.parse(v.first) }.compact
+      dates.empty? ? nil : dates.min.year
+    end
+
+    def all_date_elements_hash(doc)
+      doc.select { |k,v| k[/dc\.date/] }
+    end
+
+    def title_sort_hash(titles)
+      unless titles.nil?
+        titles.first.downcase.gsub(/[^\p{Alnum}\s]/, '').gsub(/^(a|an|the)\s/, '').gsub(/\s/,'')
+      end
+    end
+
+    def ark_hash(arks)
+      arks.nil? ? nil : { arks.first => ['arks.princeton.edu'] }.to_json.to_s
+    end
+
+    def non_ark_ids_hash(non_ark_ids)
+      non_ark_ids.nil? ? nil : { 'Other identifier' => non_ark_ids }.to_json.to_s
+    end
+
+    def first_or_nil(field)
+      field.nil? ? nil : field.first
+    end
+
     # this is kind of a mess...
     def map_non_special_to_solr(dc_elements)
       h = { }
@@ -154,15 +239,45 @@ module Orangetheses
           end
         end
       end
-      collapse_single_val_arrays(h)
-    end
-
-    def collapse_single_val_arrays(h)
-      h.each do |k,v|
-        h[k] = v.first if v.is_a?(Array) && v.length == 1
-      end
       h
     end
 
+    def map_rest_non_special_to_solr(doc)
+      h = { }
+      REST_NON_SPECIAL_ELEMENT_MAPPING.each do |field_name, solr_fields|
+        if doc.has_key?(field_name)
+          solr_fields.each do |f|
+            val = []
+            val << h[f]
+            val << doc[field_name]
+            h[f] = val.flatten.compact
+            # Ruby might have a bug here
+            # if h.has_key?(f)
+            #   h[f].push(doc[field_name])
+            # else
+            #   h[f] = doc[field_name]
+            # end
+          end
+        end
+      end
+      h
+    end
+    # online access when there isn't a restriction/location note
+    def holdings_access(doc)
+      if doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
+        {
+          'location' => 'Mudd Manuscript Library',
+          'location_display' => 'Mudd Manuscript Library',
+          'location_code_s' => 'mudd',
+          'access_facet' => 'In the Library',
+          'holdings_1display' => physical_holding
+        }
+      else
+        {
+          'access_facet' => 'Online',
+          'holdings_1display' => online_holding
+        }
+      end
+    end
   end
 end
