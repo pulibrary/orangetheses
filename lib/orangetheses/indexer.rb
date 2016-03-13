@@ -56,6 +56,8 @@ module Orangetheses
       date = choose_date(dc_elements)
       h = {
         'id' => id(dc_elements),
+        'title_t' => title(dc_elements),
+        'title_citation_display' => title(dc_elements),
         'title_display' => title(dc_elements),
         'title_sort' => title_sort(dc_elements),
         'author_sort' => author_sort(dc_elements),
@@ -63,8 +65,11 @@ module Orangetheses
         'pub_date_display' => date,
         'pub_date_start_sort' => date,
         'pub_date_end_sort' => date,
+        'class_year_s' => date,
+        'access_facet' => 'Online',
         'electronic_access_1display' => ark(dc_elements),
-        'standard_no_1display' => non_ark_ids(dc_elements)
+        'standard_no_1display' => non_ark_ids(dc_elements),
+        'holdings_1display' => holdings
       }
       h.merge!(map_non_special_to_solr(dc_elements))
       h.merge!(HARD_CODED_TO_ADD)
@@ -102,7 +107,11 @@ module Orangetheses
       arks = dc_elements.select do |e|
         e.name == 'identifier' && e.text.start_with?('http://arks.princeton')
       end
-      arks.empty? ? nil : { arks.first.text => arks.first.text }.to_json.to_s
+      arks.empty? ? nil : { arks.first.text => ['arks.princeton.edu'] }.to_json.to_s
+    end
+
+    def holdings
+      "{\"Thesis\":{\"library\":\"Online\", \"location_code\":\"elfthesis\"}}"
     end
 
     def non_ark_ids(dc_elements)
