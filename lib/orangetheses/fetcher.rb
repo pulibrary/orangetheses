@@ -9,7 +9,7 @@ module Orangetheses
     # @option opts [String] :server ('http://dataspace.princeton.edu/rest/')
     # @option opts [String] :community ('267')
     def initialize(server: SERVER_URL,
-                   community: COMMUNITY_ID)
+                   community: COMMUNITY_HANDLE)
       # Cheaply write each keyword arg to an instance var with the same name:
       binding.local_variables.each do |p|
         instance_variable_set("@#{p.to_s}", eval(p.to_s))
@@ -70,9 +70,19 @@ module Orangetheses
       end
     end
 
+    def community_id
+      @community_id ||= get_community_id
+    end
+
+    def get_community_id
+      resp = Faraday.get "#{@server}/communities/"
+      json = JSON.parse(resp.body)
+      handle_id = json.select { |c| c['handle'] == @community }
+      handle_id.empty? ? '267' : handle_id.first['id'].to_s
+    end
 
     def collections
-      resp = Faraday.get "#{@server}/communities/#{@community}/collections"
+      resp = Faraday.get "#{@server}/communities/#{community_id}/collections"
       json = JSON.parse(resp.body)
       json.map {|i| i['id'].to_s}
     end

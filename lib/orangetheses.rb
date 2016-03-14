@@ -9,7 +9,7 @@ module Orangetheses
   METADATA_PREFIX = 'oai_dc'
 
   # REST service
-  COMMUNITY_ID = '267'
+  COMMUNITY_HANDLE = '88435/dsp019c67wm88m'
   SERVER_URL = 'http://dataspace.princeton.edu/rest'
   SERVER_URL = 'http://updatespace.princeton.edu/rest' if $test
   REST_LIMIT = 100
