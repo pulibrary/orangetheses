@@ -16,6 +16,28 @@ module Orangetheses
 
     let(:fixture1) { load_fixture 'f1.xml' }
 
+    let(:doc) do
+      {
+        "id"=>"dsp01b2773v788",
+        "dc.contributor"=>["Wolff, Tamsen"],
+        "dc.contributor.advisor"=>["Sandberg, Robert"],
+        "dc.contributor.author"=>["Clark, Hillary"],
+        "dc.date.accessioned"=>["2013-07-11T14:31:58Z"],
+        "dc.date.available"=>["2013-07-11T14:31:58Z"],
+        "dc.date.created"=>["2013-04-02"],
+        "dc.date.issued"=>["2013-07-11"],
+        "dc.identifier.uri"=>["http://arks.princeton.edu/ark:/88435/dsp01b2773v788"],
+        "dc.format.extent"=>["102 pages"],
+        "dc.language.iso"=>["en_US"],
+        "dc.title"=>["Dysfunction: A Play in One Act"],
+        "dc.type"=>["Princeton University Senior Theses"],
+        "pu.date.classyear"=>["2014"],
+        "pu.department"=>["English", "Theater"],
+        "pu.pdf.coverpage"=>["SeniorThesisCoverPage"],
+        "dc.rights.accessRights"=>["Walk-in Access..."]
+      }
+    end
+
     describe '#_pull_dc_elements' do
 
       it 'pulls all of the descriptive elements' do
@@ -58,6 +80,33 @@ module Orangetheses
       end
     end
 
+    describe '#_choose_date_hash'
+      let(:elements) { {
+        'dc.format' => ['125 pages'],
+        'dc.date' => ['2013-07-10T17:10:21Z'],
+        'dc.date.issued' => ['2013-07-10T17:10:21Z'],
+        'dc.date.created' => ['2013-04-03'],
+        'dc.date.availabile' => ['2012-07-10']
+      } }
+      let(:no_date_elements) { {
+        'dc.format' => ['125 pages'],
+        'foo' => ['bar']
+      } }
+      let(:just_month_year) { {
+        'dc.format' => ['126 pages'],
+        'dc.date' => ['2013-07-10T17:10:21Z'],
+        'dc.date.availabile' => ['2011-06']
+      } }
+      it 'takes the year of the earliest date' do
+        expect(subject.send(:choose_date_hash, elements)).to eq 2012
+      end
+      it 'returns nil if there is not a date' do
+        expect(subject.send(:choose_date_hash, no_date_elements)).to be_nil
+      end
+      it 'properly processes dates in the YYYY-MM format' do
+        expect(subject.send(:choose_date_hash, just_month_year)).to eq 2011
+      end
+
     describe '#_title' do
       let(:elements) { [
           create_element('title', 'Baz quux'),
@@ -97,6 +146,17 @@ module Orangetheses
       end
     end
 
+    describe '#_first_or_nil' do
+      let(:elements) { ['Beeblebrox, Zaphod', 'Prefect, Ford'] }
+      let(:no_author_sort_element) { [] }
+      it 'gets exactly one author_sort if there is one' do
+        expect(subject.send(:first_or_nil, elements)).to eq 'Beeblebrox, Zaphod'
+      end
+      it 'returns nil if there is not a author_sort' do
+        expect(subject.send(:first_or_nil, no_author_sort_element)).to be_nil
+      end
+    end
+
     describe '#_ark' do
       let(:elements) { [
           create_element('identifier', 'http://arks.princeton.edu/ark:/88435/dsp013t945q852'),
@@ -111,7 +171,7 @@ module Orangetheses
       }
       it 'gets the ark if there is one' do
         ark = "http://arks.princeton.edu/ark:/88435/dsp013t945q852"
-        expected = %Q({"#{ark}":"#{ark}"})
+        expected = %Q({"#{ark}":["arks.princeton.edu"]})
         expect(subject.send(:ark, elements)).to eq expected
       end
       it 'returns nil if there is not a ark' do
@@ -119,28 +179,28 @@ module Orangetheses
       end
     end
 
-    describe '#_non_ark_ids' do
-      let(:elements) { [
-          create_element('identifier', 'http://arks.princeton.edu/ark:/88435/dsp013t945q852'),
-          create_element('identifier', '7412'),
-          create_element('identifier', 'http://foo.bar'),
-          create_element('foo', 'bar')
-        ]
-      }
-      let(:no_identifier) { [
-          create_element('baz', 'quux'),
-          create_element('foo', 'bar')
-        ]
-      }
+    describe '#_ark_hash' do
+      let(:ark_doc) { doc['dc.identifier.uri'] }
+      let(:no_ark) { nil }
+      it 'gets the ark if there is one' do
+        ark = ark_doc.first
+        expected = %Q({"#{ark}":["arks.princeton.edu"]})
+        expect(subject.send(:ark_hash, ark_doc)).to eq expected
+      end
+      it 'returns nil if there is not a ark' do
+        expect(subject.send(:ark_hash, no_ark)).to be_nil
+      end
+    end
+
+    describe '#_non_ark_ids_hash' do
+      let(:elements) { ['202', 'Special ID'] }
+      let(:no_identifier) { doc['dc.identifier.other'] }
       it 'gets the identifiers if any' do
-        expected = [
-          '{"Other Identifier":"7412"}',
-          '{"Other Identifier":"http://foo.bar"}'
-        ]
-        expect(subject.send(:non_ark_ids, elements)).to eq expected
+        expected = "{\"Other identifier\":#{elements.to_json.to_s}}"
+        expect(subject.send(:non_ark_ids_hash, elements)).to eq expected
       end
       it 'returns nil if none' do
-        expect(subject.send(:non_ark_ids, no_identifier)).to be_nil
+        expect(subject.send(:non_ark_ids_hash, no_identifier)).to be_nil
       end
     end
 
@@ -156,15 +216,28 @@ module Orangetheses
       }
       let(:h) { subject.send(:map_non_special_to_solr, elements) }
       it 'adds the expected keys' do
-        expect(h).to include('description_display' => '125 Pages')
-        expect(h).to include('summary_note_display' => 'Soon, I expect. Or later. One of those.')
-        expect(h).to include('rights_reproductions_note_display' => 'Come on!')
-        expect(h).to include('author_display' => 'Oswald, Clara')
-        expect(h).to include('advisor_display' => 'Baker, Tom')
+        expect(h).to include('description_display' => ['125 Pages'])
+        expect(h).to include('summary_note_display' => ['Soon, I expect. Or later. One of those.'])
+        expect(h).to include('rights_reproductions_note_display' => ['Come on!'])
+        expect(h).to include('author_display' => ['Oswald, Clara'])
+        expect(h).to include('advisor_display' => ['Baker, Tom'])
         expect(h).to include('author_s' => ['Oswald, Clara', 'Baker, Tom'])
       end
       it 'but leaves others out' do
         expect(h).to_not have_key('date')
+      end
+    end
+
+    describe '#_map_rest_non_special_to_solr' do
+      let(:h) { subject.send(:map_rest_non_special_to_solr, doc) }
+      it 'adds the expected keys' do
+        expect(h).to include('author_display' => doc['dc.contributor.author'])
+        author_facet = [doc['dc.contributor.author'], doc['dc.contributor'], doc['dc.contributor.advisor']].flatten
+        expect(h['author_s']).to match_array(author_facet)
+        expect(h).to include('rights_reproductions_note_display' => doc['dc.rights.accessRights'])
+      end
+      it 'but leaves others out' do
+        expect(h).to_not have_key('id')
       end
     end
 
@@ -175,7 +248,7 @@ module Orangetheses
       end
     end
 
-    describe 'title_sort' do
+    describe '#_title_sort' do
       let(:with_punct) { [ create_element('title', '"Some quote" : Blah blah') ] }
       let(:with_article) { [ create_element('title', 'A title : blah blah') ] }
       let(:with_punct_and_article) { [ create_element('title', '"A quote" : blah blah') ] }
@@ -198,7 +271,39 @@ module Orangetheses
       end
     end
 
+    describe '#_title_sort_hash' do
+      let(:with_punct) { ['"Some quote" : Blah blah'] }
+      let(:with_article) { ['A title : blah blah'] }
+      let(:with_punct_and_article) { ['"A quote" : blah blah'] }
+      let(:not_an_article) { ['thesis'] }
+      it 'strips punctuation' do
+        expected = 'somequoteblahblah'
+        expect(subject.send(:title_sort_hash, with_punct)).to eq expected
+      end
+      it 'strips articles' do
+        expected = 'titleblahblah'
+        expect(subject.send(:title_sort_hash, with_article)).to eq expected
+      end
+      it 'strips punctuation and articles' do
+        expected = 'quoteblahblah'
+        expect(subject.send(:title_sort_hash, with_punct_and_article)).to eq expected
+      end
+      it 'leaves words that start with articles alone' do
+        expected = 'thesis'
+        expect(subject.send(:title_sort_hash, not_an_article)).to eq expected
+      end
+    end
 
+    describe '#_holdings_access' do
+      let(:doc_restrictions) { doc }
+      let(:doc_no_restrictions) { {} }
+      it 'in the library access for record with restrictions note' do
+        expect(subject.send(:holdings_access, doc_restrictions)['access_facet']).to eq('In the Library')
+      end
+      it 'online access for record without restrictions note' do
+        expect(subject.send(:holdings_access, doc_no_restrictions)['access_facet']).to eq('Online')
+      end
+    end
 
   end
 end
