@@ -3,6 +3,7 @@ require 'rexml/document'
 require 'chronic'
 require 'logger'
 require 'json'
+require 'iso-639'
 
 module Orangetheses
   class Indexer
@@ -30,8 +31,7 @@ module Orangetheses
     }
 
     HARD_CODED_TO_ADD = {
-      'format' => 'Senior Thesis',
-      'language_facet' => 'English'
+      'format' => 'Senior Thesis'
     }
 
     def initialize(solr_server=nil)
@@ -192,6 +192,7 @@ module Orangetheses
         'pub_date_end_sort' => date,
         'electronic_access_1display' => ark_hash(doc['dc.identifier.uri']),
         'standard_no_1display' => non_ark_ids_hash(doc['dc.identifier.other']),
+        'language_facet' => code_to_language(doc['dc.language.iso'])
       }
       h.merge!(map_rest_non_special_to_solr(doc))
       h.merge!(holdings_access(doc))
@@ -240,6 +241,19 @@ module Orangetheses
         end
       end
       h
+    end
+
+    # default English
+    def code_to_language(codes)
+      languages = []
+      unless codes.nil?
+        codes.each do |c|
+          code_lang = ISO_639.find(c[/^[^_]*/]) # en_US is not valid iso code
+          l = code_lang.nil? ? 'English' : code_lang.english_name
+          languages << l
+        end
+      end
+      languages.empty? ? 'English' : languages.uniq
     end
 
     def map_rest_non_special_to_solr(doc)
