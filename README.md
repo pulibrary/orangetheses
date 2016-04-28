@@ -1,6 +1,6 @@
 # Orangetheses
 
-Lightweight indexer for PUL Senior Theses from DSpace.
+Lightweight indexer for PUL non-MARC records.
 
 ## Installation
 
@@ -9,7 +9,11 @@ Lightweight indexer for PUL Senior Theses from DSpace.
 ## Usage
 
 ```
-rake orangetheses:index_all SOLR="http://127.0.0.1:8983/solr/blacklight-core
+# index PUL Senior theses fetched from DSpace REST Service
+rake orangetheses:index_all SOLR="http://127.0.0.1:8983/solr/blacklight-core"
+
+# index Visuals data
+rake orangetheses:index_visuals SOLR="http://127.0.0.1:8983/solr/blacklight-core"
 ```
 
 ## Development

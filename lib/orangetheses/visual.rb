@@ -13,21 +13,54 @@ module Orangetheses
 
     VISUALS = 'VisualsResults.tar.gz'
     VISUALS_URL = "http://libweb5.princeton.edu/NewStaff/visuals/#{VISUALS}"
+    SEPARATOR = '—'
 
+    ### Unique visual xml elements ###
+    # id: solr id 
+    # title: title display
+    # othertitle: other title field
+    # imprint: publication display
+    # unitdate: publication display
+    # year1: pub year, sometimes centuries or uuuu
+    # physdesc: description - size of...
+    # note: multivalued
+    # acqinfo: acquisitions note
+    # creator: author display
+    # contributor: experimenting with author display
+    # subject: hierarchical, separated by '--'
+    # genreform: genre - capitalize first letter
+    ### Holdings based stuff ###
+    # callno: call number
+    # physicallocation: location note
+    # link: link to file - can be multivalued
+    # colllink: treat the same as link
+    # collection: <holdings>: location code ctsn,ex,ga,map,mss,mudd,num,rcpxr,thx,wa,whs
+    ######## IGNORE ########
+    # designation: identical to callno
+    # langcode: zxx - no language content
+    # type: always image
+    # source: always Visuals
+    # year2: only 22 examples, some inconsistencies
+    # holdings: assuming single holding
+    # item:  <holdings>: assuming single item
+    # primoItem: <holdings><item>: callno + physicallocation
+    # temdata: <holdings><item>: identical to physical location
     NON_SPECIAL_ELEMENT_MAPPING = {
       'creator' => ['author_display', 'author_s'],
-      'contributor' => ['advisor_display', 'author_s'],
-      'format' => ['description_display'],
-      'rights' => ['rights_reproductions_note_display'],
-      'description' => ['summary_note_display']
+      'contributor' => ['author_display', 'author_s'],
+      'physdesc' => ['description_display'],
+      'note' => ['notes_display'],
+      'acqinfo' => ['source_acquisition_display'],
+      'unitdate' => ['pub_date_display'],
+      'callno' => ['call_number_display', 'call_number_browse_s']
     }
 
     HARD_CODED_TO_ADD = {
-      'language_facet' => 'English'
+      'format' => 'Visual Material'
     }
 
     def initialize(solr_server=nil)
-      solr_server = 'http://localhost:8983/solr' if solr_server.nil?
+      solr_server = 'http://localhost:8888/solr/blacklight-core' if solr_server.nil?
       @tmpdir = Dir.mktmpdir
       @solr = RSolr.connect(url: solr_server)
       @logger = Logger.new(STDOUT)
@@ -36,24 +69,6 @@ module Orangetheses
         time = datetime.strftime("%H:%M:%S")
         "[#{time}] #{severity}: #{msg}\n"
       end
-    end
-
-    # @param element  A REXML::Element (because this is what we get from the OAI gem)
-    # @return  The HTTP response status from Solr (??)
-    def index(metadata_element)
-      begin
-        dc_elements = pull_dc_elements(metadata_element)
-        doc = build_hash(dc_elements)
-        @logger.info("Adding #{doc['id']}")
-        @solr.add(doc, add_attributes: { commitWithin: 10 })
-      rescue NoMethodError => e
-        @logger.error(e.to_s)
-        @logger.error(metadata_element)
-      rescue Exception => e
-        @logger.error(e.to_s)
-        dc_elements.each { |element| @logger.error(element.to_s) }
-      end
-
     end
 
     def process_all_visuals
@@ -68,106 +83,194 @@ module Orangetheses
       `tar -zxvf #{@tmpdir}/#{VISUALS} -C #{@tmpdir}`
     end
 
+
     def process_visual_file(visual)
+      objects = []
       doc = REXML::Document.new(File.new(visual))
-      doc.elements.each("*/record") {|v| build_hash(v.elements.to_a)}
+      doc.elements.each("*/record") {|v| objects << build_hash(v.elements.to_a)}
+      @logger.info("Adding #{visual}")
+      @solr.add(objects)
+      @solr.commit
+      objects
     end
 
     def build_hash(elements)
-      puts elements
-      # date = choose_date(dc_elements)
-      # h = {
-      #   'id' => id(dc_elements),
-      #   'title_t' => title(dc_elements),
-      #   'title_citation_display' => title(dc_elements),
-      #   'title_display' => title(dc_elements),
-      #   'title_sort' => title_sort(dc_elements),
-      #   'author_sort' => author_sort(dc_elements),
-      #   'format' => 'Senior Thesis',
-      #   'pub_date_display' => date,
-      #   'pub_date_start_sort' => date,
-      #   'pub_date_end_sort' => date,
-      #   'class_year_s' => date,
-      #   'access_facet' => 'Online',
-      #   'electronic_access_1display' => ark(dc_elements),
-      #   'standard_no_1display' => non_ark_ids(dc_elements),
-      #   'holdings_1display' => holdings
-      # }
-      # h.merge!(map_non_special_to_solr(dc_elements))
-      # h.merge!(HARD_CODED_TO_ADD)
-      # h
+      location_code = get_location_code(elements)
+      links = get_links(elements)
+      h = {
+          'id' => id(elements),
+          'title_t' => select_element(elements, 'title'),
+          'title_citation_display' => select_element(elements, 'title'),
+          'title_display' => select_element(elements, 'title'),
+          'title_sort' => title_sort(elements),
+          'other_title_display' => select_element(elements, 'othertitle'),
+          'other_title_index' => select_element(elements, 'othertitle'),
+          'author_sort' => select_element(elements, 'creator'),
+          'pub_date_start_sort' => choose_date(elements),
+          'pub_date_end_sort' => choose_date(elements),
+          'pub_created_display' => publication(elements),
+          'form_genre_display' => genre(elements),
+          'genre_facet' => genre(elements),
+          'location_code_s' => location_code,
+          'location' => get_library(location_code),
+          'electronic_access_1display' => links,
+          'access_facet' => access_facet(location_code, links),
+          'holdings_1display' => holdings(elements, location_code)
+      }
+      h.merge!(map_non_special_to_solr(elements))
+      h.merge!(subjects_fields(elements))
+      h.merge!(HARD_CODED_TO_ADD)
+      h
     end
 
-    # @return Array<REXML::Element>  the descriptive elements
-    def pull_dc_elements(element)
-      element.elements.to_a('oai_dc:dc/*')
+    def choose_date(elements)
+      process_date(select_element(elements, 'year1'))
     end
 
-    def choose_date(dc_elements)
-      dates = all_date_elements(dc_elements).map { |d| Chronic.parse(d.text) }
-      dates.empty? ? nil : dates.min.year
+    # @return 4 digit String or nil if uuuu
+    def process_date(year)
+      if year.nil?
+        nil
+      elsif year == '8981'
+        '0898'
+      elsif year == '173'
+        '1730'
+      elsif year.length == 2 # century
+        (year.to_i-1).to_s + '00'
+      elsif year.length == 3
+        '0' + year
+      elsif year == 'uuuu'
+        nil   
+      else
+        year
+      end
     end
 
-    def all_date_elements(dc_elements)
-      dc_elements.select { |e| e.name == 'date' }
+    def get_location_code(elements)
+      holdings = elements.select { |e| e.name == 'holdings' }
+      return nil if holdings.empty?
+      locs = holdings.first.elements.select { |e| e.name == 'collection' }
+      locs.empty? ? nil : locs.first.text
     end
 
-    def title(dc_elements)
-      titles = dc_elements.select { |e| e.name == 'title' }
-      titles.empty? ? nil : titles.first.text
+    def genre(elements)
+      titles = elements.select { |e| e.name == 'genreform' }
+      titles.empty? ? nil : titles.first.text.capitalize
     end
 
-    def title_sort(dc_elements)
-      titles = dc_elements.select { |e| e.name == 'title' }
+    def title_sort(elements)
+      titles = elements.select { |e| e.name == 'title' }
       title = titles.empty? ? nil : titles.first.text
       unless title.nil?
         title.downcase.gsub(/[^\p{Alnum}\s]/, '').gsub(/^(a|an|the)\s/, '').gsub(/\s/,'')
       end
     end
 
-    def ark(dc_elements)
-      arks = dc_elements.select do |e|
-        e.name == 'identifier' && e.text.start_with?('http://arks.princeton')
-      end
-      arks.empty? ? nil : { arks.first.text => ['arks.princeton.edu'] }.to_json.to_s
+    def get_links(elements)
+      links = elements.select { |e| e.name == 'link' || e.name == 'colllink' }
+      return nil if links.empty?
+      link_hash = {}
+      links.each { |l| link_hash[l.text] = [l.text.split('/').last.capitalize] }
+      link_hash.to_json.to_s
     end
 
-    def holdings
-      "{\"Thesis\":{\"library\":\"Online\", \"location_code\":\"elfthesis\"}}"
+    def holdings(elements, location_code)
+      holdings = {}
+      holding_info = {}
+      holding_info['location_code'] = location_code || 'elfvisuals'
+      cn = select_element(elements, 'callno')
+      holding_info['call_number'] = cn unless cn.nil?
+      loc_note = select_element(elements, 'physicallocation')
+      holding_info['location_note'] = [loc_note] unless loc_note.nil?
+      if location_code.nil?
+        holding_info['library'] = 'Online'
+        holding_info['location'] = 'Online'
+      else
+        holding_info['library'] = get_library(location_code)
+        holding_info['location'] = location_full_display(location_code)
+      end
+      holding_info['dspace'] = true
+      holdings['visuals'] = holding_info
+      holdings.to_json.to_s
     end
 
-    def non_ark_ids(dc_elements)
-      non_ark_ids = dc_elements.select do |e|
-        e.name == 'identifier' && !e.text.start_with?('http://arks.princeton')
+    # joins imprint and unitdate fields
+    def publication(elements)
+      pub = elements.select { |e| e.name == 'imprint' }
+      pub = pub.empty? ? '' : pub.first.text.gsub(/[[:punct:]]$/, '')
+      date = elements.select { |e| e.name == 'unitdate' }
+      date = date.empty? ? '' : date.first.text
+      pubdate = if pub.empty?
+        date
+      elsif date.empty?
+        pub
+      else
+        "#{pub}, #{date}"
       end
-      unless non_ark_ids.empty?
-        ids = []
-        non_ark_ids.map(&:text).each do |n|
-          ids << { 'Other Identifier' => n }.to_json.to_s
+      pubdate.empty? ? nil : pubdate.capitalize
+    end
+
+    def id(elements)
+      id = elements.select { |e| e.name == 'id' }.first.text
+      "visuals#{id}"
+    end
+
+    def select_element(elements, field)
+      element = elements.select { |e| e.name == field }
+      element.empty? ? nil : element.first.text
+    end
+
+    def locations
+      @locations || get_locations
+    end
+
+    def get_locations
+      locations = Faraday.get('https://bibdata.princeton.edu/locations/holding_locations.json')
+      if locations.status == 200
+        @locations = {}
+        JSON.parse(locations.body).each do |location|
+          @locations[location['code']] = location
         end
-        return ids
       end
-      nil
+      @locations
     end
 
-
-    def id(dc_elements)
-      arks = dc_elements.select do |e|
-        e.name == 'identifier' && e.text.start_with?('http://arks.princeton')
-      end
-      arks.empty? ? nil : arks.first.text.split('/').last
+    def get_library(code)
+      locations[code]['library']['label']
     end
 
-    def author_sort(dc_elements)
-      authors = dc_elements.select { |e| e.name == 'creator' }
-      authors.empty? ? nil : authors.first.text
+    def location_full_display(code)
+      locations[code]['label'] == '' ? get_library(code) : get_library(code) + ' - ' + locations[code]['label']
+    end
+
+    def access_facet(location_code, links)
+      facet = []
+      facet << 'In the Library' unless location_code.nil?
+      facet << 'Online' unless links.nil?
+      facet
+    end
+
+    def subjects_fields(elements)
+      subjects = elements.select { |e| e.name == 'subject' }
+      return {} if subjects.empty?
+      full_subjects = []
+      split_subjects = []
+      subjects.each do |s|
+        full_subjects << s.text.gsub('--', SEPARATOR)
+        split_subjects << s.text.split('--')
+      end
+      {
+        'subject_facet' => full_subjects,
+        'subject_display' => full_subjects,
+        'subject_topic_facet' => split_subjects.flatten.uniq
+      }
     end
 
     # this is kind of a mess...
-    def map_non_special_to_solr(dc_elements)
+    def map_non_special_to_solr(vis_elements)
       h = { }
       NON_SPECIAL_ELEMENT_MAPPING.each do |element_name, fields|
-        elements = dc_elements.select { |e| e.name == element_name }
+        elements = vis_elements.select { |e| e.name == element_name }
         fields.each do |f|
           if h.has_key?(f)
             h[f].push(*elements.map(&:text))

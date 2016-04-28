@@ -80,7 +80,7 @@ module Orangetheses
       end
     end
 
-    describe '#_choose_date_hash'
+    describe '#_choose_date_hash' do
       let(:elements) { {
         'dc.format' => ['125 pages'],
         'dc.date' => ['2013-07-10T17:10:21Z'],
@@ -106,6 +106,7 @@ module Orangetheses
       it 'properly processes dates in the YYYY-MM format' do
         expect(subject.send(:choose_date_hash, just_month_year)).to eq 2011
       end
+    end
 
     describe '#_title' do
       let(:elements) { [
