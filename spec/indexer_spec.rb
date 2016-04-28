@@ -32,7 +32,7 @@ module Orangetheses
         "dc.title"=>["Dysfunction: A Play in One Act"],
         "dc.type"=>["Princeton University Senior Theses"],
         "pu.date.classyear"=>["2014"],
-        "pu.department"=>["English", "Theater"],
+        "pu.department"=>["Princeton University. Department of English", "Princeton University. Program in Theater"],
         "pu.pdf.coverpage"=>["SeniorThesisCoverPage"],
         "dc.rights.accessRights"=>["Walk-in Access..."]
       }
@@ -170,8 +170,9 @@ module Orangetheses
         ]
       }
       it 'gets the ark if there is one' do
+        dspace_display = (subject.send(:dspace_display_text))
         ark = "http://arks.princeton.edu/ark:/88435/dsp013t945q852"
-        expected = %Q({"#{ark}":["arks.princeton.edu"]})
+        expected = %Q({"#{ark}":["#{dspace_display}"]})
         expect(subject.send(:ark, elements)).to eq expected
       end
       it 'returns nil if there is not a ark' do
@@ -183,8 +184,9 @@ module Orangetheses
       let(:ark_doc) { doc['dc.identifier.uri'] }
       let(:no_ark) { nil }
       it 'gets the ark if there is one' do
+        dspace_display = (subject.send(:dspace_display_text))
         ark = ark_doc.first
-        expected = %Q({"#{ark}":["arks.princeton.edu"]})
+        expected = %Q({"#{ark}":["#{dspace_display}"]})
         expect(subject.send(:ark_hash, ark_doc)).to eq expected
       end
       it 'returns nil if there is not a ark' do
@@ -228,11 +230,21 @@ module Orangetheses
       end
     end
 
+    describe 'LaTex normalization' do
+      it 'strips out all non alpha-numeric in LaTex expressions' do
+        latex = '2D \\(^{1}\\)H-\\(^{14}\\)N HSQC inverse-detection experiments'
+        title_search = subject.send(:title_search_hash, [latex])
+        expect(title_search).to include(latex)
+        expect(title_search).to include('2D 1H-14N HSQC inverse-detection experiments')
+      end
+    end
+
     describe '#_map_rest_non_special_to_solr' do
       let(:h) { subject.send(:map_rest_non_special_to_solr, doc) }
       it 'adds the expected keys' do
         expect(h).to include('author_display' => doc['dc.contributor.author'])
-        author_facet = [doc['dc.contributor.author'], doc['dc.contributor'], doc['dc.contributor.advisor']].flatten
+        author_facet = [doc['dc.contributor.author'], doc['dc.contributor'],
+                        doc['dc.contributor.advisor'], doc['pu.department']].flatten
         expect(h['author_s']).to match_array(author_facet)
         expect(h).to include('rights_reproductions_note_display' => doc['dc.rights.accessRights'])
       end

@@ -20,6 +20,7 @@ module Orangetheses
           "parentCommunityList"=>nil,
           "metadata"=>[
             {"key"=>"dc.contributor", "value"=>"Wolff, Tamsen", "language"=>nil},
+            {"key"=>"dc.contributor", "value"=>"2nd contributor", "language"=>nil},
             {"key"=>"dc.contributor.advisor", "value"=>"Sandberg, Robert", "language"=>nil},
             {"key"=>"dc.contributor.author", "value"=>"Clark, Hillary", "language"=>nil},
             {"key"=>"dc.date.accessioned", "value"=>"2013-07-11T14:31:58Z", "language"=>nil},
@@ -33,7 +34,7 @@ module Orangetheses
             {"key"=>"dc.type", "value"=>"Princeton University Senior Theses", "language"=>nil},
             {"key"=>"pu.date.classyear", "value"=>"2013", "language"=>"en_US"},
             {"key"=>"pu.department", "value"=>"English", "language"=>"en_US"},
-            {"key"=>"pu.department", "value"=>"Theater", "language"=>"en_US"},
+            {"key"=>"pu.department", "value"=>"NA", "language"=>"en_US"},
             {"key"=>"pu.pdf.coverpage", "value"=>"SeniorThesisCoverPage", "language"=>nil},
             {"key"=>"dc.rights.accessRights", "value"=>"Walk-in Access...", "language"=>nil}
           ],
@@ -54,9 +55,14 @@ module Orangetheses
       end
 
       it "supports multiple values if metadata appears more than once" do
-        expect(subject['pu.department']).to include('English', 'Theater')
+        expect(subject['dc.contributor']).to include('Wolff, Tamsen', '2nd contributor')
       end
 
+      it "maps pu.department to LC authorized name, excludes values not in name list" do
+        expect(subject['pu.department']).to include('Princeton University. Department of English')
+        expect(subject['pu.department']).not_to include('NA')
+        expect(subject['pu.department'].length).to eq 1
+      end
     end
 
   end

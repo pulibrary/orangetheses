@@ -22,11 +22,11 @@ module Orangetheses
       'dc.contributor.author' => ['author_display', 'author_s'],
       'dc.contributor.advisor' => ['advisor_display', 'author_s'],
       'dc.contributor' => ['contributor_display', 'author_s'],
-      'pu.department' => ['department_s'],
+      'pu.department' => ['department_display', 'author_s'],
       'dc.format.extent' => ['description_display'],
       'dc.rights.accessRights' => ['rights_reproductions_note_display'],
       'pu.location' => ['rights_reproductions_note_display'],
-      'pu.date.classyear' => ['class_year_s'],
+      'pu.date.classyear' => ['class_year_s', 'pub_date_start_sort', 'pub_date_end_sort'],
       'dc.description.abstract' => ['summary_note_display']
     }
 
@@ -137,7 +137,7 @@ module Orangetheses
       arks = dc_elements.select do |e|
         e.name == 'identifier' && e.text.start_with?('http://arks.princeton')
       end
-      arks.empty? ? nil : { arks.first.text => ['arks.princeton.edu'] }.to_json.to_s
+      arks.empty? ? nil : { arks.first.text => [dspace_display_text] }.to_json.to_s
     end
 
     def online_holding
@@ -179,17 +179,13 @@ module Orangetheses
     end
 
     def build_solr_hash(doc)
-      date = choose_date_hash(doc)
       h = {
         'id' => doc['id'],
-        'title_t' => first_or_nil(doc['dc.title']),
+        'title_t' => title_search_hash(doc['dc.title']),
         'title_citation_display' => first_or_nil(doc['dc.title']),
         'title_display' => first_or_nil(doc['dc.title']),
         'title_sort' => title_sort_hash(doc['dc.title']),
         'author_sort' => first_or_nil(doc['dc.contributor.author']),
-        'pub_date_display' => date,
-        'pub_date_start_sort' => date,
-        'pub_date_end_sort' => date,
         'electronic_access_1display' => ark_hash(doc['dc.identifier.uri']),
         'standard_no_1display' => non_ark_ids_hash(doc['dc.identifier.other']),
         'language_facet' => code_to_language(doc['dc.language.iso'])
@@ -215,8 +211,22 @@ module Orangetheses
       end
     end
 
+    # Take first title, strip out latex expressions when present to include along
+    # with non-normalized version (allowing users to get matches both when LaTex
+    # is pasted directly into the search box and when sub/superscripts are placed
+    # adjacent to regular characters
+    def title_search_hash(titles)
+      unless titles.nil?
+        title = titles.first
+        title.scan(/\\\(.*?\\\)/).each do |latex|
+          title = title.gsub(latex, latex.gsub(/[^\p{Alnum}]/, ''))
+        end
+        title == titles.first ? title : [titles.first, title]
+      end
+    end
+
     def ark_hash(arks)
-      arks.nil? ? nil : { arks.first => ['arks.princeton.edu'] }.to_json.to_s
+      arks.nil? ? nil : { arks.first => [dspace_display_text] }.to_json.to_s
     end
 
     def non_ark_ids_hash(non_ark_ids)
@@ -225,6 +235,10 @@ module Orangetheses
 
     def first_or_nil(field)
       field.nil? ? nil : field.first
+    end
+
+    def dspace_display_text
+      'DataSpace'
     end
 
     # this is kind of a mess...
