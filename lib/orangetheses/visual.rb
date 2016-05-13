@@ -207,7 +207,7 @@ module Orangetheses
       else
         "#{pub}, #{date}"
       end
-      pubdate.empty? ? nil : pubdate.capitalize
+      pubdate.empty? ? nil : pubdate.split.map(&:capitalize).join(' ')
     end
 
     def id(elements)

@@ -320,6 +320,11 @@ module Orangetheses
           create_element('imprint', 'london')
         ]
       }
+      let(:elements_uncapitalized) { [
+          create_element('imprint', 'london press inc'),
+          create_element('unitdate', 'd. early 1975')
+        ]
+      }
       it 'combines imprint and unitdate separated by comma, strips imprint punctuation' do
         expect(subject.send(:publication, elements)).to eq 'London, 1975'
       end
@@ -328,6 +333,9 @@ module Orangetheses
       end
       it 'is just imprint when unitdate is missing' do
         expect(subject.send(:publication, elements_just_imprint)).to eq 'London'
+      end
+      it 'capitalizes each word' do
+        expect(subject.send(:publication, elements_uncapitalized)).to eq 'London Press Inc, D. Early 1975'
       end
     end
 
