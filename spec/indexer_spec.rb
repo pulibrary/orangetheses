@@ -158,10 +158,16 @@ module Orangetheses
     end
 
     describe '#_ark' do
-      let(:elements) { [
+      let(:elements_full) { [
           create_element('identifier', 'http://arks.princeton.edu/ark:/88435/dsp013t945q852'),
           create_element('identifier', '7412'),
           create_element('foo', 'bar')
+        ]
+      }
+      let(:elements_rights) { [
+          create_element('identifier', 'http://arks.princeton.edu/ark:/88435/dsp013t945q852'),
+          create_element('identifier', '7412'),
+          create_element('rights', 'there are restrictions')
         ]
       }
       let(:no_ark) { [
@@ -169,11 +175,17 @@ module Orangetheses
           create_element('foo', 'bar')
         ]
       }
-      it 'gets the ark if there is one' do
-        dspace_display = (subject.send(:dspace_display_text))
+      it 'gets the ark with full text link display when no rights' do
+        full_text = (subject.send(:full_text))
         ark = "http://arks.princeton.edu/ark:/88435/dsp013t945q852"
-        expected = %Q({"#{ark}":["#{dspace_display}"]})
-        expect(subject.send(:ark, elements)).to eq expected
+        expected = %Q({"#{ark}":["#{full_text}"]})
+        expect(subject.send(:ark, elements_full)).to eq expected
+      end
+      it 'gets the ark with citation link display when rights' do
+        citation = (subject.send(:citation))
+        ark = "http://arks.princeton.edu/ark:/88435/dsp013t945q852"
+        expected = %Q({"#{ark}":["#{citation}"]})
+        expect(subject.send(:ark, elements_rights)).to eq expected
       end
       it 'returns nil if there is not a ark' do
         expect(subject.send(:ark, no_ark)).to be_nil
@@ -181,13 +193,26 @@ module Orangetheses
     end
 
     describe '#_ark_hash' do
-      let(:ark_doc) { doc['dc.identifier.uri'] }
-      let(:no_ark) { nil }
-      it 'gets the ark if there is one' do
-        dspace_display = (subject.send(:dspace_display_text))
-        ark = ark_doc.first
-        expected = %Q({"#{ark}":["#{dspace_display}"]})
-        expect(subject.send(:ark_hash, ark_doc)).to eq expected
+      let(:ark_doc_citation) { doc }
+      let(:ark_doc_full_text) {
+        doc.delete('dc.rights.accessRights')
+        doc
+      }
+      let(:no_ark) {
+        doc.delete('dc.identifier.uri')
+        doc
+      }
+      it 'gets the ark with citation link display when restrctions' do
+        citation = (subject.send(:citation))
+        ark = ark_doc_citation['dc.identifier.uri'].first
+        expected = %Q({"#{ark}":["#{citation}"]})
+        expect(subject.send(:ark_hash, ark_doc_citation)).to eq expected
+      end
+      it 'gets the ark with full text link display when no restrctions' do
+        full_text = (subject.send(:full_text))
+        ark = ark_doc_full_text['dc.identifier.uri'].first
+        expected = %Q({"#{ark}":["#{full_text}"]})
+        expect(subject.send(:ark_hash, ark_doc_full_text)).to eq expected
       end
       it 'returns nil if there is not a ark' do
         expect(subject.send(:ark_hash, no_ark)).to be_nil
