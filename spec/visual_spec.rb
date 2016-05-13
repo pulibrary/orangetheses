@@ -48,18 +48,39 @@ module Orangetheses
           create_element('colllink', 'finally.org/messy file.pdf')
         ]
       }
+      let(:check_links) { [
+          create_element('id', '12345'),
+          create_element('link', 'http://libweb5.princeton.edu/visual_materials/ga/West portrait.jpg'),
+          create_element('link', 'http://libweb5.princeton.edu/visual_materials/ga/bad link.jpg'),
+          create_element('colllink', 'http://libweb5.princeton.edu/visual_materials/ga/new york from brooklyn heights1.jpg')
+        ]
+      }
       let(:links) { JSON.parse(subject.send(:get_links, elements)) }
       it 'hash includes link elements' do
+        dbl = double
+        allow(dbl).to receive(:status).and_return(200)
+        allow(Faraday).to receive(:get) { dbl }
         expect(links.has_key?('site/title.jpg')).to be true
         expect(links.has_key?('other.com/url')).to be true
       end
       it 'hash includes colllink elements' do
+        dbl = double
+        allow(dbl).to receive(:status).and_return(200)
+        allow(Faraday).to receive(:get) { dbl }
         expect(links.has_key?('finally.org/messy file.pdf')).to be true
       end
       it 'display text is filename after last slash with first word capitalized' do
+        dbl = double
+        allow(dbl).to receive(:status).and_return(200)
+        allow(Faraday).to receive(:get) { dbl }
         expect(links.values.flatten.include?('Title.jpg')).to be true
         expect(links.values.flatten.include?('Url')).to be true
         expect(links.values.flatten.include?('Messy file.pdf')).to be true
+      end
+      it 'excludes links that do not resolve' do
+        links = JSON.parse(subject.send(:get_links, check_links))
+        expect(links.has_key?('http://libweb5.princeton.edu/visual_materials/ga/West portrait.jpg')).to be true
+        expect(links.has_key?('http://libweb5.princeton.edu/visual_materials/ga/bad link.jpg')).to be false
       end
     end
 

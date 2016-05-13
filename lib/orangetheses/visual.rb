@@ -168,9 +168,17 @@ module Orangetheses
 
     def get_links(elements)
       links = elements.select { |e| e.name == 'link' || e.name == 'colllink' }
-      return nil if links.empty?
+      working_links = []
+      links.each do |link|
+        if Faraday.get(URI.escape(link.text)).status == 200
+          working_links << link
+        else
+        @logger.info("#{id(elements)}: Bad link #{link.text}")
+        end
+      end
+      return nil if working_links.empty?
       link_hash = {}
-      links.each { |l| link_hash[l.text] = [l.text.split('/').last.capitalize] }
+      working_links.each { |l| link_hash[l.text] = [l.text.split('/').last.capitalize] }
       link_hash.to_json.to_s
     end
 
