@@ -137,7 +137,7 @@ module Orangetheses
       arks = dc_elements.select do |e|
         e.name == 'identifier' && e.text.start_with?('http://arks.princeton')
       end
-      arks.empty? ? nil : { arks.first.text => [dspace_display_text] }.to_json.to_s
+      arks.empty? ? nil : { arks.first.text => [dspace_display_text(dc_elements)] }.to_json.to_s
     end
 
     def online_holding
@@ -186,7 +186,7 @@ module Orangetheses
         'title_display' => first_or_nil(doc['dc.title']),
         'title_sort' => title_sort_hash(doc['dc.title']),
         'author_sort' => first_or_nil(doc['dc.contributor.author']),
-        'electronic_access_1display' => ark_hash(doc['dc.identifier.uri']),
+        'electronic_access_1display' => ark_hash(doc),
         'standard_no_1display' => non_ark_ids_hash(doc['dc.identifier.other']),
         'language_facet' => code_to_language(doc['dc.language.iso'])
       }
@@ -225,8 +225,9 @@ module Orangetheses
       end
     end
 
-    def ark_hash(arks)
-      arks.nil? ? nil : { arks.first => [dspace_display_text] }.to_json.to_s
+    def ark_hash(doc)
+      arks = doc['dc.identifier.uri']
+      arks.nil? ? nil : { arks.first => [dspace_display_text_hash(doc)] }.to_json.to_s
     end
 
     def non_ark_ids_hash(non_ark_ids)
@@ -237,8 +238,28 @@ module Orangetheses
       field.nil? ? nil : field.first
     end
 
-    def dspace_display_text
-      'DataSpace'
+    def dspace_display_text(dc_elements)
+      if dc_elements.select { |e| e.name == 'rights' }.empty?
+        full_text
+      else
+        citation
+      end
+    end
+
+    def dspace_display_text_hash(doc)
+      if doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
+        citation
+      else
+        full_text
+      end
+    end
+
+    def full_text
+      'DataSpace full text'
+    end
+
+    def citation
+      'DataSpace citation'
     end
 
     # this is kind of a mess...
