@@ -17,5 +17,5 @@ module Orangetheses
   autoload :Harvester, 'orangetheses/harvester'
   autoload :Fetcher, 'orangetheses/fetcher'
   autoload :Indexer, 'orangetheses/indexer'
-
+  autoload :Visual, 'orangetheses/visual'
 end
