@@ -63,6 +63,10 @@ module Orangetheses
 
     end
 
+    def get_solr_doc(doc)
+      build_solr_hash(doc)
+    end
+
     # @param doc [Hash] Metadata hash with dc and pu terms
     # @return  The HTTP response status from Solr (??)
     def index_hash(doc)

@@ -53,6 +53,17 @@ module Orangetheses
       end
     end
 
+    def cache_all_collections(indexer)
+      records = []
+      collections.each do |c|
+        collection = fetch_collection(c)
+        collection.each do |record|
+          records << indexer.get_solr_doc(record)
+        end
+      end
+      records
+    end
+
     private
 
     def flatten_json(items)
