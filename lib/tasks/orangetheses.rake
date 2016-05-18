@@ -10,7 +10,7 @@ namespace :orangetheses do
   end
 
   desc "Exports all theses as solr json docs to FILEPATH"
-  task :cache_all do
+  task :cache_theses do
     fetcher = Orangetheses::Fetcher.new
     indexer = Orangetheses::Indexer.new
     path = ENV['FILEPATH'] || '/tmp/theses.json'

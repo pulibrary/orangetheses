@@ -12,6 +12,9 @@ Lightweight indexer for PUL non-MARC records.
 # index PUL Senior theses fetched from DSpace REST Service
 rake orangetheses:index_all SOLR="http://127.0.0.1:8983/solr/blacklight-core"
 
+# fetch theses from DSpace and store Solr JSON docs in a file
+rake orangetheses:cache_theses FILEPATH=/tmp/theses.json
+
 # index Visuals data
 rake orangetheses:index_visuals SOLR="http://127.0.0.1:8983/solr/blacklight-core"
 ```

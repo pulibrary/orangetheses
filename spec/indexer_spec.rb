@@ -332,6 +332,24 @@ module Orangetheses
       end
     end
 
+    describe '#_class_year_fields' do
+      let(:class_year) { ["2014"] }
+      let(:doc_int) { { "pu.date.classyear" => class_year } }
+      let(:doc_no_int) { { "pu.date.classyear" => ["Undated"] } }
+      let(:doc_no_field) { {} }
+      it 'returns empty hash when no integer in classyear field' do
+        expect(subject.send(:class_year_fields, doc_no_int)).to eq({})
+      end
+      it 'returns empty hash when no classyear field' do
+        expect(subject.send(:class_year_fields, doc_no_field)).to eq({})
+      end
+      it 'returns hash with class year as value for year fields' do
+        expect(subject.send(:class_year_fields, doc_int)['class_year_s']).to eq(class_year)
+        expect(subject.send(:class_year_fields, doc_int)['pub_date_start_sort']).to eq(class_year)
+        expect(subject.send(:class_year_fields, doc_int)['pub_date_end_sort']).to eq(class_year)
+      end
+    end
+
     describe '#_holdings_access' do
       let(:doc_restrictions) { doc }
       let(:doc_no_restrictions) { {} }

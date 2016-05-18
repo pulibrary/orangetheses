@@ -26,7 +26,6 @@ module Orangetheses
       'dc.format.extent' => ['description_display'],
       'dc.rights.accessRights' => ['rights_reproductions_note_display'],
       'pu.location' => ['rights_reproductions_note_display'],
-      'pu.date.classyear' => ['class_year_s', 'pub_date_start_sort', 'pub_date_end_sort'],
       'dc.description.abstract' => ['summary_note_display']
     }
 
@@ -196,6 +195,7 @@ module Orangetheses
       }
       h.merge!(map_rest_non_special_to_solr(doc))
       h.merge!(holdings_access(doc))
+      h.merge!(class_year_fields(doc))
       h.merge!(HARD_CODED_TO_ADD)
       h
     end
@@ -315,6 +315,17 @@ module Orangetheses
       end
       h
     end
+
+    def class_year_fields(doc)
+      h = { }
+      if doc.has_key?('pu.date.classyear') && doc['pu.date.classyear'].first =~ /^\d+$/
+        h['class_year_s'] = doc['pu.date.classyear']
+        h['pub_date_start_sort'] = doc['pu.date.classyear']
+        h['pub_date_end_sort'] = doc['pu.date.classyear']
+      end
+      h
+    end
+
     # online access when there isn't a restriction/location note
     def holdings_access(doc)
       if doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
