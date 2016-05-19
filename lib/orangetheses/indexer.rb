@@ -140,7 +140,7 @@ module Orangetheses
       arks = dc_elements.select do |e|
         e.name == 'identifier' && e.text.start_with?('http://arks.princeton')
       end
-      arks.empty? ? nil : { arks.first.text => [dspace_display_text(dc_elements)] }.to_json.to_s
+      arks.empty? ? nil : { arks.first.text => dspace_display_text(dc_elements) }.to_json.to_s
     end
 
     def online_holding
@@ -231,7 +231,7 @@ module Orangetheses
 
     def ark_hash(doc)
       arks = doc['dc.identifier.uri']
-      arks.nil? ? nil : { arks.first => [dspace_display_text_hash(doc)] }.to_json.to_s
+      arks.nil? ? nil : { arks.first => dspace_display_text_hash(doc) }.to_json.to_s
     end
 
     def non_ark_ids_hash(non_ark_ids)
@@ -243,27 +243,35 @@ module Orangetheses
     end
 
     def dspace_display_text(dc_elements)
+      text = [dataspace]
       if dc_elements.select { |e| e.name == 'rights' }.empty?
-        full_text
+        text << full_text
       else
-        citation
+        text << citation
       end
+      text
     end
 
     def dspace_display_text_hash(doc)
+      text = [dataspace]
       if doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
-        citation
+        text << citation
       else
-        full_text
+        text << full_text
       end
+      text
+    end
+
+    def dataspace
+      'DataSpace'
     end
 
     def full_text
-      'DataSpace full text'
+      'Full text'
     end
 
     def citation
-      'DataSpace citation'
+      'Citation only'
     end
 
     # this is kind of a mess...
