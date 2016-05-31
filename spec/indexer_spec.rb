@@ -38,6 +38,10 @@ module Orangetheses
       }
     end
 
+    let(:dspace) { subject.send(:dataspace) }
+    let(:full_text) { subject.send(:full_text) }
+    let(:citation) { subject.send(:citation) }
+
     describe '#_pull_dc_elements' do
 
       it 'pulls all of the descriptive elements' do
@@ -177,15 +181,13 @@ module Orangetheses
         ]
       }
       it 'gets the ark with full text link display when no rights' do
-        full_text = (subject.send(:full_text))
         ark = "http://arks.princeton.edu/ark:/88435/dsp013t945q852"
-        expected = %Q({"#{ark}":["#{full_text}"]})
+        expected = %Q({"#{ark}":["#{dspace}","#{full_text}"]})
         expect(subject.send(:ark, elements_full)).to eq expected
       end
       it 'gets the ark with citation link display when rights' do
-        citation = (subject.send(:citation))
         ark = "http://arks.princeton.edu/ark:/88435/dsp013t945q852"
-        expected = %Q({"#{ark}":["#{citation}"]})
+        expected = %Q({"#{ark}":["#{dspace}","#{citation}"]})
         expect(subject.send(:ark, elements_rights)).to eq expected
       end
       it 'returns nil if there is not a ark' do
@@ -204,15 +206,13 @@ module Orangetheses
         doc
       }
       it 'gets the ark with citation link display when restrctions' do
-        citation = (subject.send(:citation))
         ark = ark_doc_citation['dc.identifier.uri'].first
-        expected = %Q({"#{ark}":["#{citation}"]})
+        expected = %Q({"#{ark}":["#{dspace}","#{citation}"]})
         expect(subject.send(:ark_hash, ark_doc_citation)).to eq expected
       end
       it 'gets the ark with full text link display when no restrctions' do
-        full_text = (subject.send(:full_text))
         ark = ark_doc_full_text['dc.identifier.uri'].first
-        expected = %Q({"#{ark}":["#{full_text}"]})
+        expected = %Q({"#{ark}":["#{dspace}","#{full_text}"]})
         expect(subject.send(:ark_hash, ark_doc_full_text)).to eq expected
       end
       it 'returns nil if there is not a ark' do
@@ -329,6 +329,24 @@ module Orangetheses
       it 'leaves words that start with articles alone' do
         expected = 'thesis'
         expect(subject.send(:title_sort_hash, not_an_article)).to eq expected
+      end
+    end
+
+    describe '#_class_year_fields' do
+      let(:class_year) { ["2014"] }
+      let(:doc_int) { { "pu.date.classyear" => class_year } }
+      let(:doc_no_int) { { "pu.date.classyear" => ["Undated"] } }
+      let(:doc_no_field) { {} }
+      it 'returns empty hash when no integer in classyear field' do
+        expect(subject.send(:class_year_fields, doc_no_int)).to eq({})
+      end
+      it 'returns empty hash when no classyear field' do
+        expect(subject.send(:class_year_fields, doc_no_field)).to eq({})
+      end
+      it 'returns hash with class year as value for year fields' do
+        expect(subject.send(:class_year_fields, doc_int)['class_year_s']).to eq(class_year)
+        expect(subject.send(:class_year_fields, doc_int)['pub_date_start_sort']).to eq(class_year)
+        expect(subject.send(:class_year_fields, doc_int)['pub_date_end_sort']).to eq(class_year)
       end
     end
 

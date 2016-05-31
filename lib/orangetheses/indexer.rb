@@ -26,7 +26,6 @@ module Orangetheses
       'dc.format.extent' => ['description_display'],
       'dc.rights.accessRights' => ['rights_reproductions_note_display'],
       'pu.location' => ['rights_reproductions_note_display'],
-      'pu.date.classyear' => ['class_year_s', 'pub_date_start_sort', 'pub_date_end_sort'],
       'dc.description.abstract' => ['summary_note_display']
     }
 
@@ -61,6 +60,10 @@ module Orangetheses
         dc_elements.each { |element| @logger.error(element.to_s) }
       end
 
+    end
+
+    def get_solr_doc(doc)
+      build_solr_hash(doc)
     end
 
     # @param doc [Hash] Metadata hash with dc and pu terms
@@ -137,7 +140,7 @@ module Orangetheses
       arks = dc_elements.select do |e|
         e.name == 'identifier' && e.text.start_with?('http://arks.princeton')
       end
-      arks.empty? ? nil : { arks.first.text => [dspace_display_text(dc_elements)] }.to_json.to_s
+      arks.empty? ? nil : { arks.first.text => dspace_display_text(dc_elements) }.to_json.to_s
     end
 
     def online_holding
@@ -192,6 +195,7 @@ module Orangetheses
       }
       h.merge!(map_rest_non_special_to_solr(doc))
       h.merge!(holdings_access(doc))
+      h.merge!(class_year_fields(doc))
       h.merge!(HARD_CODED_TO_ADD)
       h
     end
@@ -227,7 +231,7 @@ module Orangetheses
 
     def ark_hash(doc)
       arks = doc['dc.identifier.uri']
-      arks.nil? ? nil : { arks.first => [dspace_display_text_hash(doc)] }.to_json.to_s
+      arks.nil? ? nil : { arks.first => dspace_display_text_hash(doc) }.to_json.to_s
     end
 
     def non_ark_ids_hash(non_ark_ids)
@@ -239,27 +243,35 @@ module Orangetheses
     end
 
     def dspace_display_text(dc_elements)
+      text = [dataspace]
       if dc_elements.select { |e| e.name == 'rights' }.empty?
-        full_text
+        text << full_text
       else
-        citation
+        text << citation
       end
+      text
     end
 
     def dspace_display_text_hash(doc)
+      text = [dataspace]
       if doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
-        citation
+        text << citation
       else
-        full_text
+        text << full_text
       end
+      text
+    end
+
+    def dataspace
+      'DataSpace'
     end
 
     def full_text
-      'DataSpace full text'
+      'Full text'
     end
 
     def citation
-      'DataSpace citation'
+      'Citation only'
     end
 
     # this is kind of a mess...
@@ -311,6 +323,17 @@ module Orangetheses
       end
       h
     end
+
+    def class_year_fields(doc)
+      h = { }
+      if doc.has_key?('pu.date.classyear') && doc['pu.date.classyear'].first =~ /^\d+$/
+        h['class_year_s'] = doc['pu.date.classyear']
+        h['pub_date_start_sort'] = doc['pu.date.classyear']
+        h['pub_date_end_sort'] = doc['pu.date.classyear']
+      end
+      h
+    end
+
     # online access when there isn't a restriction/location note
     def holdings_access(doc)
       if doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
