@@ -4,6 +4,7 @@ require 'chronic'
 require 'logger'
 require 'json'
 require 'iso-639'
+require 'lcsort'
 
 module Orangetheses
   class Indexer
@@ -102,7 +103,7 @@ module Orangetheses
         'access_facet' => 'Online',
         'electronic_access_1display' => ark(dc_elements),
         'standard_no_1display' => non_ark_ids(dc_elements),
-        'holdings_1display' => online_holding
+        'holdings_1display' => online_holding({})
       }
       h.merge!(map_non_special_to_solr(dc_elements))
       h.merge!(HARD_CODED_TO_ADD)
@@ -143,16 +144,27 @@ module Orangetheses
       arks.empty? ? nil : { arks.first.text => dspace_display_text(dc_elements) }.to_json.to_s
     end
 
-    def online_holding
-      "{\"Thesis\":{\"library\":\"Online\", \"location_code\":\"elfthesis\"}}"
+    def online_holding(doc)
+      {
+        'thesis' => {
+          'location' => 'Online',
+          'library' => 'Online',
+          'location_code' => 'elf1',
+          'call_number' => call_number(doc['dc.identifier.other']),
+          'call_number_browse' => call_number(doc['dc.identifier.other']),
+          'dspace' => true
+        }
+      }.to_json.to_s
     end
 
-    def physical_holding
+    def physical_holding(doc)
       {
         'thesis' => {
           'location' => 'Mudd Manuscript Library',
           'library' => 'Mudd Manuscript Library',
           'location_code' => 'mudd',
+          'call_number' => call_number(doc['dc.identifier.other']),
+          'call_number_browse' =>call_number(doc['dc.identifier.other']),
           'dspace' => true
         }
       }.to_json.to_s
@@ -190,7 +202,9 @@ module Orangetheses
         'title_sort' => title_sort_hash(doc['dc.title']),
         'author_sort' => first_or_nil(doc['dc.contributor.author']),
         'electronic_access_1display' => ark_hash(doc),
-        'standard_no_1display' => non_ark_ids_hash(doc['dc.identifier.other']),
+        'restrictions_note_display' => embargo_display_text(doc),
+        'call_number_display' => call_number(doc['dc.identifier.other']),
+        'call_number_browse_s' => Lcsort.normalize(call_number(doc['dc.identifier.other'])),
         'language_facet' => code_to_language(doc['dc.language.iso'])
       }
       h.merge!(map_rest_non_special_to_solr(doc))
@@ -234,8 +248,8 @@ module Orangetheses
       arks.nil? ? nil : { arks.first => dspace_display_text_hash(doc) }.to_json.to_s
     end
 
-    def non_ark_ids_hash(non_ark_ids)
-      non_ark_ids.nil? ? nil : { 'Other identifier' => non_ark_ids }.to_json.to_s
+    def call_number(non_ark_ids)
+      non_ark_ids.nil? ? 'AC102' : "AC102 #{non_ark_ids.first}"
     end
 
     def first_or_nil(field)
@@ -254,12 +268,41 @@ module Orangetheses
 
     def dspace_display_text_hash(doc)
       text = [dataspace]
-      if doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
+      if on_site_only?(doc)
         text << citation
       else
         text << full_text
       end
       text
+    end
+
+    def on_site_only?(doc)
+      doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights') ||
+      doc.has_key?('pu.embargo.lift') || doc.has_key?('pu.embargo.terms')
+    end
+
+    def embargo(doc)
+      date = doc['pu.embargo.lift'] || doc['pu.embargo.terms']
+      date = Chronic.parse(date.first) unless date.nil?
+      date = date.strftime('%B %-d, %Y') unless date.nil?
+      date
+    end
+
+    def embargo_display_text(doc)
+      if doc['pu.embargo.lift'] || doc['pu.embargo.terms']
+        if !(date = embargo(doc)).nil?
+          "This content is embargoed until #{date}. For more information contact the "\
+          "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc['id']}\"> "\
+          "Mudd Manuscript Library</a>."
+        else
+          @logger.info("No valid embargo date for #{doc['id']}")
+          "This content is embargoed. For more information contact the "\
+          "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc['id']}\"> "\
+          "Mudd Manuscript Library</a>."
+        end
+      else
+        nil
+      end
     end
 
     def dataspace
@@ -336,18 +379,21 @@ module Orangetheses
 
     # online access when there isn't a restriction/location note
     def holdings_access(doc)
-      if doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
+      if on_site_only?(doc)
         {
           'location' => 'Mudd Manuscript Library',
           'location_display' => 'Mudd Manuscript Library',
           'location_code_s' => 'mudd',
+          'advanced_location_s' => ['mudd', 'Mudd Manuscript Library'],
           'access_facet' => 'In the Library',
-          'holdings_1display' => physical_holding
+          'holdings_1display' => physical_holding(doc)
         }
       else
         {
           'access_facet' => 'Online',
-          'holdings_1display' => online_holding
+          'location_code_s' => 'elf1',
+          'advanced_location_s' => ['elf1', 'Online'],
+          'holdings_1display' => online_holding(doc)
         }
       end
     end
