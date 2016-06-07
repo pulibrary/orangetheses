@@ -112,6 +112,7 @@ module Orangetheses
           'form_genre_display' => genre(elements),
           'genre_facet' => genre(elements),
           'location_code_s' => location_code,
+          'advanced_location_s' => [location_code, get_library(location_code)],
           'location' => get_library(location_code),
           'electronic_access_1display' => links,
           'access_facet' => access_facet(location_code, links),
@@ -120,7 +121,16 @@ module Orangetheses
       h.merge!(map_non_special_to_solr(elements))
       h.merge!(subjects_fields(elements))
       h.merge!(HARD_CODED_TO_ADD)
+      related_names(h)
       h
+    end
+
+    def related_names(doc)
+      if Array(doc['author_display']).length > 4
+        related_names = doc['author_display']
+        doc['author_display'] = [related_names.shift]
+        doc['related_name_json_1display'] = { 'Related name' => related_names }.to_json.to_s
+      end
     end
 
     def choose_date(elements)
@@ -188,6 +198,7 @@ module Orangetheses
       holding_info['location_code'] = location_code || 'elfvisuals'
       cn = select_element(elements, 'callno')
       holding_info['call_number'] = cn unless cn.nil?
+      holding_info['call_number_browse'] = cn unless cn.nil?
       loc_note = select_element(elements, 'physicallocation')
       holding_info['location_note'] = [loc_note] unless loc_note.nil?
       if location_code.nil?
