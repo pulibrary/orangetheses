@@ -1,5 +1,7 @@
 # Orangetheses
 
+[![Circle CI](https://circleci.com/gh/pulibrary/orangetheses.svg?style=svg)](https://circleci.com/gh/pulibrary/orangetheses)
+
 Lightweight indexer for PUL non-MARC records.
 
 ## Installation
