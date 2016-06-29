@@ -195,6 +195,81 @@ module Orangetheses
       end
     end
 
+    describe '#_on_site_only?' do
+      let(:doc_embargo_terms) { { 'pu.embargo.terms' => ['embargoed!'] } }
+      let(:doc_embargo_lift) { { 'pu.embargo.lift' => ['never!'] } }
+      let(:doc_location) { { 'pu.location' => ['physical location'] } }
+      let(:doc_restriction) { doc }
+      let(:doc_nothing) { {} }
+
+      it 'doc with embargo terms field returns true' do
+        expect(subject.send(:on_site_only?, doc_embargo_terms)).to be true
+      end
+      it 'doc with embargo lift field returns true' do
+        expect(subject.send(:on_site_only?, doc_embargo_lift)).to be true
+      end
+      it 'doc with location field returns true' do
+        expect(subject.send(:on_site_only?, doc_location)).to be true
+      end
+      it 'doc with restrictions field returns true' do
+        expect(subject.send(:on_site_only?, doc_restriction)).to be true
+      end
+      it 'doc with no access-related fields returns false' do
+        expect(subject.send(:on_site_only?, doc_nothing)).to be false
+      end
+    end
+
+    describe '#_embargo_display_text' do
+      let(:doc_no_embargo) { {} }
+      let(:doc_no_valid_date) { { 'id' => '123', 'pu.embargo.lift' => ['never'] } }
+      let(:doc_lift_date) { { 'id' => '123456', 'pu.embargo.lift' => ['2017-07-01'] } }
+
+      it 'returns nil for doc without embargo field' do
+        expect(subject.send(:embargo_display_text, doc_no_embargo)).to be nil
+      end
+      it 'returns restrction note for embargoed doc with invalid date' do
+        expect(subject.send(:embargo_display_text, doc_no_valid_date)).to include('This content is embargoed.')
+      end
+      it 'returns valid formatted embargo date in restriction note' do
+        expect(subject.send(:embargo_display_text, doc_lift_date)).to include('July 1, 2017')
+      end
+      it 'restriction note email subject includes embargoed doc id' do
+        expect(subject.send(:embargo_display_text, doc_lift_date)).to include('123456')
+      end
+    end
+
+    describe '#_embargo' do
+      let(:doc_no_embargo) { {} }
+      let(:doc_no_valid_date) { { 'pu.embargo.lift' => ['never'] } }
+      let(:doc_lift_date) { { 'pu.embargo.lift' => ['2017-07-01'] } }
+      let(:doc_terms_date) { { 'pu.embargo.terms' => ['2100-01-01'] } }
+
+      it 'returns nil for doc without embargo field' do
+        expect(subject.send(:embargo, doc_no_embargo)).to be nil
+      end
+      it 'returns nil for doc with invalid date' do
+        expect(subject.send(:embargo, doc_no_valid_date)).to be nil
+      end
+      it 'returns formatted embargo date' do
+        expect(subject.send(:embargo, doc_lift_date)).to eq('July 1, 2017')
+      end
+      it 'picks up embargo terms value when lift value not present' do
+        expect(subject.send(:embargo, doc_terms_date)).to eq('January 1, 2100')
+      end
+    end
+
+    describe '#_call_number' do
+      let(:doc_no_id) { nil }
+      let(:doc_id) { ['123'] }
+      it 'when other identifier not present returns AC102' do
+        expect(subject.send(:call_number, doc_no_id)).to eq('AC102')
+      end
+      it 'when other identifier present appends id to AC102' do
+        expect(subject.send(:call_number, doc_id)).to eq('AC102 123')
+      end
+    end
+
+
     describe '#_ark_hash' do
       let(:ark_doc_citation) { doc }
       let(:ark_doc_full_text) {
@@ -217,18 +292,6 @@ module Orangetheses
       end
       it 'returns nil if there is not a ark' do
         expect(subject.send(:ark_hash, no_ark)).to be_nil
-      end
-    end
-
-    describe '#_non_ark_ids_hash' do
-      let(:elements) { ['202', 'Special ID'] }
-      let(:no_identifier) { doc['dc.identifier.other'] }
-      it 'gets the identifiers if any' do
-        expected = "{\"Other identifier\":#{elements.to_json.to_s}}"
-        expect(subject.send(:non_ark_ids_hash, elements)).to eq expected
-      end
-      it 'returns nil if none' do
-        expect(subject.send(:non_ark_ids_hash, no_identifier)).to be_nil
       end
     end
 
@@ -353,11 +416,35 @@ module Orangetheses
     describe '#_holdings_access' do
       let(:doc_restrictions) { doc }
       let(:doc_no_restrictions) { {} }
-      it 'in the library access for record with restrictions note' do
-        expect(subject.send(:holdings_access, doc_restrictions)['access_facet']).to eq('In the Library')
+      let(:online_holding) { JSON.parse(subject.send(:online_holding, doc_no_restrictions)) }
+      let(:physical_holding) { JSON.parse(subject.send(:physical_holding, doc_restrictions)) }
+      describe 'in the library' do
+        it 'in the library access for record with restrictions note' do
+          expect(subject.send(:holdings_access, doc_restrictions)['access_facet']).to eq('In the Library')
+        end
+        it 'includes mudd as an advanced location value' do
+          expect(subject.send(:holdings_access, doc_restrictions)['advanced_location_s']).to include('Mudd Manuscript Library')
+        end
+        it 'holdings include call number' do
+          expect(physical_holding['thesis'].has_key?('call_number')).to be true
+        end
+        it 'holdings include call number browse' do
+          expect(physical_holding['thesis'].has_key?('call_number_browse')).to be true
+        end
       end
-      it 'online access for record without restrictions note' do
-        expect(subject.send(:holdings_access, doc_no_restrictions)['access_facet']).to eq('Online')
+      describe 'online' do
+        it 'online access for record without restrictions note' do
+          expect(subject.send(:holdings_access, doc_no_restrictions)['access_facet']).to eq('Online')
+        end
+        it 'includes online as an advanced location value' do
+          expect(subject.send(:holdings_access, doc_no_restrictions)['advanced_location_s']).to include('Online')
+        end
+        it 'holdings include call number' do
+          expect(online_holding['thesis'].has_key?('call_number')).to be true
+        end
+        it 'holdings include call number browse' do
+          expect(online_holding['thesis'].has_key?('call_number_browse')).to be true
+        end
       end
     end
 
