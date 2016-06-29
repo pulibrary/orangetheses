@@ -84,6 +84,50 @@ module Orangetheses
       end
     end
 
+    describe '#_related_names' do
+      before(:each) { subject.send(:related_names, doc) }
+      describe 'with one name' do
+        let(:doc) do
+          {
+            'author_display' => ['Author1']
+          }
+        end
+        it 'author display field unchanged' do
+          expect(doc['author_display']).to eq(['Author1'])
+        end
+        it 'related names field is nil' do
+          expect(doc['related_name_json_1display']).to be_nil
+        end
+      end
+      describe 'with few names' do
+        let(:doc) do
+          {
+            'author_display' => ['Author1', 'Related1', 'Related2']
+          }
+        end
+        it 'author display field unchanged' do
+          expect(doc['author_display']).to eq(['Author1', 'Related1', 'Related2'])
+        end
+        it 'related names field is nil' do
+          expect(doc['related_name_json_1display']).to be_nil
+        end
+      end
+      describe 'with many names' do
+        let(:doc) do
+          {
+            'author_display' => ['Author1', 'R1', 'R2', 'R3', 'R4']
+          }
+        end
+        it 'author display field only first value' do
+          expect(doc['author_display']).to eq(['Author1'])
+        end
+        it 'contributors in related name field' do
+          names = JSON.parse(doc['related_name_json_1display'])['Related name']
+          expect(names).to eq(['R1', 'R2', 'R3', 'R4'])
+        end
+      end
+    end
+
     describe '#_get_locations' do
       let(:locations) { subject.send(:get_locations) }
       it 'hash values contains library info and holding location label' do
@@ -297,6 +341,9 @@ module Orangetheses
         it 'Includes a call number field when callno is present' do
           expect(holdings['visuals']['call_number']).to eq 'GA 145'
         end
+        it 'Includes a call number browse field when callno is present' do
+          expect(holdings['visuals']['call_number_browse']).to eq 'GA 145'
+        end
         it 'Includes a location not when physicallocation is present' do
           expect(holdings['visuals']['location_note']).to eq ['Shelf 2B']
         end
@@ -320,6 +367,9 @@ module Orangetheses
         end
         it 'does not include a call number field when callno is missing' do
           expect(holdings_empty['visuals']['call_number']).to be nil
+        end
+        it 'does not include a call number browse field when callno is missing' do
+          expect(holdings_empty['visuals']['call_number_browse']).to be nil
         end
         it 'does not include a location not when physicallocation is missing' do
           expect(holdings_empty['visuals']['location_note']).to be nil
