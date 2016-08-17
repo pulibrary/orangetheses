@@ -31,7 +31,7 @@ module Orangetheses
     }
 
     HARD_CODED_TO_ADD = {
-      'format' => 'Senior Thesis'
+      'format' => 'Senior thesis'
     }
 
     def initialize(solr_server=nil)

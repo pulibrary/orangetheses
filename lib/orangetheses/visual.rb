@@ -56,7 +56,7 @@ module Orangetheses
     }
 
     HARD_CODED_TO_ADD = {
-      'format' => 'Visual Material'
+      'format' => 'Visual material'
     }
 
     def initialize(solr_server=nil)
