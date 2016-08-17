@@ -415,9 +415,11 @@ module Orangetheses
 
     describe '#_holdings_access' do
       let(:doc_restrictions) { doc }
+      let(:doc_embargo) { doc.merge('pu.embargo.terms' => ['embargoed!']) }
       let(:doc_no_restrictions) { {} }
       let(:online_holding) { JSON.parse(subject.send(:online_holding, doc_no_restrictions)) }
       let(:physical_holding) { JSON.parse(subject.send(:physical_holding, doc_restrictions)) }
+      let(:embargo_holding) { JSON.parse(subject.send(:physical_holding, doc_embargo, accessible: false)) }
       describe 'in the library' do
         it 'in the library access for record with restrictions note' do
           expect(subject.send(:holdings_access, doc_restrictions)['access_facet']).to eq('In the Library')
@@ -430,6 +432,23 @@ module Orangetheses
         end
         it 'holdings include call number browse' do
           expect(physical_holding['thesis'].has_key?('call_number_browse')).to be true
+        end
+        it 'holdings dspace value is true' do
+          expect(physical_holding['thesis']['dspace']).to be true
+        end
+      end
+      describe 'embargo' do
+        it 'in the library access for record with restrictions note' do
+          expect(subject.send(:holdings_access, doc_embargo)['access_facet']).to be_nil
+        end
+        it 'includes mudd as an advanced location value' do
+          expect(subject.send(:holdings_access, doc_embargo)['advanced_location_s']).to include('Mudd Manuscript Library')
+        end
+        it 'holdings include call number' do
+          expect(embargo_holding['thesis'].has_key?('call_number_browse')).to be true
+        end
+        it 'holdings dspace value is true' do
+          expect(embargo_holding['thesis']['dspace']).to be false
         end
       end
       describe 'online' do

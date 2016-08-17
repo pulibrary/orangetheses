@@ -31,7 +31,7 @@ module Orangetheses
     }
 
     HARD_CODED_TO_ADD = {
-      'format' => 'Senior Thesis'
+      'format' => 'Senior thesis'
     }
 
     def initialize(solr_server=nil)
@@ -157,7 +157,7 @@ module Orangetheses
       }.to_json.to_s
     end
 
-    def physical_holding(doc)
+    def physical_holding(doc, accessible: true)
       {
         'thesis' => {
           'location' => 'Mudd Manuscript Library',
@@ -165,7 +165,7 @@ module Orangetheses
           'location_code' => 'mudd',
           'call_number' => call_number(doc['dc.identifier.other']),
           'call_number_browse' =>call_number(doc['dc.identifier.other']),
-          'dspace' => true
+          'dspace' => accessible
         }
       }.to_json.to_s
     end
@@ -278,6 +278,10 @@ module Orangetheses
 
     def on_site_only?(doc)
       doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights') ||
+      embargo?(doc)
+    end
+
+    def embargo?(doc)
       doc.has_key?('pu.embargo.lift') || doc.has_key?('pu.embargo.terms')
     end
 
@@ -289,7 +293,7 @@ module Orangetheses
     end
 
     def embargo_display_text(doc)
-      if doc['pu.embargo.lift'] || doc['pu.embargo.terms']
+      if embargo?(doc)
         if !(date = embargo(doc)).nil?
           "This content is embargoed until #{date}. For more information contact the "\
           "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc['id']}\"> "\
@@ -379,7 +383,15 @@ module Orangetheses
 
     # online access when there isn't a restriction/location note
     def holdings_access(doc)
-      if on_site_only?(doc)
+      if embargo?(doc)
+        {
+          'location' => 'Mudd Manuscript Library',
+          'location_display' => 'Mudd Manuscript Library',
+          'location_code_s' => 'mudd',
+          'advanced_location_s' => ['mudd', 'Mudd Manuscript Library'],
+          'holdings_1display' => physical_holding(doc, accessible: false)
+        }
+      elsif on_site_only?(doc)
         {
           'location' => 'Mudd Manuscript Library',
           'location_display' => 'Mudd Manuscript Library',
