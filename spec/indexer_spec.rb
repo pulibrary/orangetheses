@@ -196,8 +196,9 @@ module Orangetheses
     end
 
     describe '#_on_site_only?' do
-      let(:doc_embargo_terms) { { 'pu.embargo.terms' => ['embargoed!'] } }
-      let(:doc_embargo_lift) { { 'pu.embargo.lift' => ['never!'] } }
+      let(:doc_embargo_terms) { { 'pu.embargo.terms' => ['2100-01-01'] } }
+      let(:doc_embargo_lift) { { 'pu.embargo.lift' => ['2100-01-01'] } }
+      let(:doc_embargo_lift_past) { { 'pu.embargo.lift' => ['2000-01-01'] } }
       let(:doc_location) { { 'pu.location' => ['physical location'] } }
       let(:doc_restriction) { doc }
       let(:doc_nothing) { {} }
@@ -207,6 +208,9 @@ module Orangetheses
       end
       it 'doc with embargo lift field returns true' do
         expect(subject.send(:on_site_only?, doc_embargo_lift)).to be true
+      end
+      it 'doc with expired embargo lift field returns false' do
+        expect(subject.send(:on_site_only?, doc_embargo_lift_past)).to be false
       end
       it 'doc with location field returns true' do
         expect(subject.send(:on_site_only?, doc_location)).to be true
@@ -222,16 +226,20 @@ module Orangetheses
     describe '#_embargo_display_text' do
       let(:doc_no_embargo) { {} }
       let(:doc_no_valid_date) { { 'id' => '123', 'pu.embargo.lift' => ['never'] } }
-      let(:doc_lift_date) { { 'id' => '123456', 'pu.embargo.lift' => ['2017-07-01'] } }
+      let(:doc_lift_date) { { 'id' => '123456', 'pu.embargo.lift' => ['2100-07-01'] } }
+      let(:doc_lift_date_past) { { 'id' => '123456', 'pu.embargo.lift' => ['2010-07-01'] } }
 
       it 'returns nil for doc without embargo field' do
         expect(subject.send(:embargo_display_text, doc_no_embargo)).to be nil
       end
       it 'returns restrction note for embargoed doc with invalid date' do
-        expect(subject.send(:embargo_display_text, doc_no_valid_date)).to include('This content is embargoed.')
+        expect(subject.send(:embargo_display_text, doc_no_valid_date)).to be nil
       end
       it 'returns valid formatted embargo date in restriction note' do
-        expect(subject.send(:embargo_display_text, doc_lift_date)).to include('July 1, 2017')
+        expect(subject.send(:embargo_display_text, doc_lift_date_past)).to be nil
+      end
+      it 'returns valid formatted embargo date in restriction note' do
+        expect(subject.send(:embargo_display_text, doc_lift_date)).to include('July 1, 2100')
       end
       it 'restriction note email subject includes embargoed doc id' do
         expect(subject.send(:embargo_display_text, doc_lift_date)).to include('123456')
@@ -255,6 +263,26 @@ module Orangetheses
       end
       it 'picks up embargo terms value when lift value not present' do
         expect(subject.send(:embargo, doc_terms_date)).to eq('January 1, 2100')
+      end
+    end
+
+    describe '#_embargo?' do
+      let(:doc_no_embargo) { {} }
+      let(:doc_no_valid_date) { { 'pu.embargo.lift' => ['never'] } }
+      let(:doc_lift_date) { { 'pu.embargo.lift' => ['2014-07-01'] } }
+      let(:doc_terms_date) { { 'pu.embargo.terms' => ['2100-01-01'] } }
+
+      it 'returns false for doc without embargo field' do
+        expect(subject.send(:embargo?, doc_no_embargo)).to be false
+      end
+      it 'returns false for doc with invalid date' do
+        expect(subject.send(:embargo?, doc_no_valid_date)).to be false
+      end
+      it 'returns false if embargo date in past' do
+        expect(subject.send(:embargo?, doc_lift_date)).to be false
+      end
+      it 'returns true if embargo date is in future' do
+        expect(subject.send(:embargo?, doc_terms_date)).to be true
       end
     end
 
@@ -415,7 +443,7 @@ module Orangetheses
 
     describe '#_holdings_access' do
       let(:doc_restrictions) { doc }
-      let(:doc_embargo) { doc.merge('pu.embargo.terms' => ['embargoed!']) }
+      let(:doc_embargo) { doc.merge('pu.embargo.terms' => ['2100-01-01']) }
       let(:doc_no_restrictions) { {} }
       let(:online_holding) { JSON.parse(subject.send(:online_holding, doc_no_restrictions)) }
       let(:physical_holding) { JSON.parse(subject.send(:physical_holding, doc_restrictions)) }

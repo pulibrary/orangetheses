@@ -282,7 +282,14 @@ module Orangetheses
     end
 
     def embargo?(doc)
-      doc.has_key?('pu.embargo.lift') || doc.has_key?('pu.embargo.terms')
+      date = doc['pu.embargo.lift'] || doc['pu.embargo.terms']
+      return false if date.nil?
+      date = Chronic.parse(date.first)
+      if date.nil?
+        @logger.info("No valid embargo date for #{doc['id']}")
+        return false
+      end
+      date > Time.now
     end
 
     def embargo(doc)
@@ -294,16 +301,10 @@ module Orangetheses
 
     def embargo_display_text(doc)
       if embargo?(doc)
-        if !(date = embargo(doc)).nil?
-          "This content is embargoed until #{date}. For more information contact the "\
-          "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc['id']}\"> "\
-          "Mudd Manuscript Library</a>."
-        else
-          @logger.info("No valid embargo date for #{doc['id']}")
-          "This content is embargoed. For more information contact the "\
-          "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc['id']}\"> "\
-          "Mudd Manuscript Library</a>."
-        end
+        date = embargo(doc)
+        "This content is embargoed until #{date}. For more information contact the "\
+        "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc['id']}\"> "\
+        "Mudd Manuscript Library</a>."
       else
         nil
       end
