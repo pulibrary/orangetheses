@@ -112,17 +112,29 @@ module Orangetheses
           'form_genre_display' => genre(elements),
           'genre_facet' => genre(elements),
           'location_code_s' => location_code,
-          'advanced_location_s' => [location_code, get_library(location_code)],
-          'location' => get_library(location_code),
           'electronic_access_1display' => links,
-          'access_facet' => access_facet(location_code, links),
-          'holdings_1display' => holdings(elements, location_code)
+          'access_facet' => access_facet(location_code, links)
       }
+      h.merge!(location_info(location_code, elements))
       h.merge!(map_non_special_to_solr(elements))
       h.merge!(subjects_fields(elements))
       h.merge!(HARD_CODED_TO_ADD)
       related_names(h)
       h
+    end
+
+    def location_info(location_code, elements)
+      if locations[location_code]
+        {
+          'advanced_location_s' => [location_code, get_library(location_code)],
+          'location' => get_library(location_code),
+          'holdings_1display' => holdings(elements, location_code)
+        }
+      else
+        @logger.info("#{id(elements)}: Invalid location code #{location_code}")
+        {}
+      end
+
     end
 
     def related_names(doc)
