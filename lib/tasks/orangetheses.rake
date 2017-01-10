@@ -27,6 +27,7 @@ namespace :orangetheses do
   desc "Index all visuals at SOLR=http://..."
   task :index_visuals do
     visuals = Orangetheses::Visual.new(ENV['SOLR'])
+    visuals.delete_stale_visuals
     visuals.process_all_visuals
   end
 

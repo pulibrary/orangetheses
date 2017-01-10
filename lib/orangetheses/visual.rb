@@ -71,6 +71,11 @@ module Orangetheses
       end
     end
 
+    def delete_stale_visuals
+      @solr.delete_by_query('id:visuals*')
+      @solr.commit
+    end
+
     def process_all_visuals
       get_all_visuals
       Dir["#{@tmpdir}/*.xml"].each { |f| process_visual_file(f) }
