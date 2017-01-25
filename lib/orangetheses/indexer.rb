@@ -4,7 +4,6 @@ require 'chronic'
 require 'logger'
 require 'json'
 require 'iso-639'
-require 'lcsort'
 
 module Orangetheses
   class Indexer
@@ -204,7 +203,7 @@ module Orangetheses
         'electronic_access_1display' => ark_hash(doc),
         'restrictions_note_display' => embargo_display_text(doc),
         'call_number_display' => call_number(doc['dc.identifier.other']),
-        'call_number_browse_s' => Lcsort.normalize(call_number(doc['dc.identifier.other'])),
+        'call_number_browse_s' => call_number(doc['dc.identifier.other']),
         'language_facet' => code_to_language(doc['dc.language.iso'])
       }
       h.merge!(map_rest_non_special_to_solr(doc))

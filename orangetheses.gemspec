@@ -34,5 +34,4 @@ Gem::Specification.new do |spec|
   spec.add_dependency "faraday"
   spec.add_dependency "rsolr"
   spec.add_dependency "chronic"
-  spec.add_dependency "lcsort"
 end
