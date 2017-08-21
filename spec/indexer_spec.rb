@@ -19,6 +19,7 @@ module Orangetheses
     let(:doc) do
       {
         "id"=>"dsp01b2773v788",
+        "dc.description.abstract"=>["Summary"],
         "dc.contributor"=>["Wolff, Tamsen"],
         "dc.contributor.advisor"=>["Sandberg, Robert"],
         "dc.contributor.author"=>["Clark, Hillary"],
@@ -199,6 +200,7 @@ module Orangetheses
       let(:doc_embargo_terms) { { 'pu.embargo.terms' => ['2100-01-01'] } }
       let(:doc_embargo_lift) { { 'pu.embargo.lift' => ['2100-01-01'] } }
       let(:doc_embargo_lift_past) { { 'pu.embargo.lift' => ['2000-01-01'] } }
+      let(:doc_past_embargo_walkin) { { 'pu.embargo.lift' => ['2000-01-01'], 'pu.mudd.walkin' => ['yes'] } }
       let(:doc_location) { { 'pu.location' => ['physical location'] } }
       let(:doc_restriction) { doc }
       let(:doc_nothing) { {} }
@@ -212,6 +214,9 @@ module Orangetheses
       it 'doc with expired embargo lift field returns false' do
         expect(subject.send(:on_site_only?, doc_embargo_lift_past)).to be false
       end
+      it 'doc with walkin value of yes returns true' do
+        expect(subject.send(:on_site_only?, doc_past_embargo_walkin)).to be true
+      end
       it 'doc with location field returns true' do
         expect(subject.send(:on_site_only?, doc_location)).to be true
       end
@@ -223,26 +228,34 @@ module Orangetheses
       end
     end
 
-    describe '#_embargo_display_text' do
+    describe '#_restrictions_display_text' do
       let(:doc_no_embargo) { {} }
+      let(:doc_walkin_restriction_note) { { 'id' => '123', 'pu.location' => ['restriction'], 'pu.mudd.walkin' => ['yes'] } }
       let(:doc_no_valid_date) { { 'id' => '123', 'pu.embargo.lift' => ['never'] } }
       let(:doc_lift_date) { { 'id' => '123456', 'pu.embargo.lift' => ['2100-07-01'] } }
       let(:doc_lift_date_past) { { 'id' => '123456', 'pu.embargo.lift' => ['2010-07-01'] } }
+      let(:doc_past_embargo_walkin) { { 'id' => '123456', 'pu.embargo.lift' => ['2010-07-01'], 'pu.mudd.walkin' => ['yes'] } }
 
       it 'returns nil for doc without embargo field' do
-        expect(subject.send(:embargo_display_text, doc_no_embargo)).to be nil
+        expect(subject.send(:restrictions_display_text, doc_no_embargo)).to be nil
       end
       it 'returns restrction note for embargoed doc with invalid date' do
-        expect(subject.send(:embargo_display_text, doc_no_valid_date)).to be nil
+        expect(subject.send(:restrictions_display_text, doc_no_valid_date)).to be nil
       end
       it 'returns valid formatted embargo date in restriction note' do
-        expect(subject.send(:embargo_display_text, doc_lift_date_past)).to be nil
+        expect(subject.send(:restrictions_display_text, doc_lift_date_past)).to be nil
+      end
+      it 'returns walk-in access note for lifted embargoes with walk-in property' do
+        expect(subject.send(:restrictions_display_text, doc_past_embargo_walkin)).to include('Walk-in Access.')
       end
       it 'returns valid formatted embargo date in restriction note' do
-        expect(subject.send(:embargo_display_text, doc_lift_date)).to include('July 1, 2100')
+        expect(subject.send(:restrictions_display_text, doc_lift_date)).to include('July 1, 2100')
       end
       it 'restriction note email subject includes embargoed doc id' do
-        expect(subject.send(:embargo_display_text, doc_lift_date)).to include('123456')
+        expect(subject.send(:restrictions_display_text, doc_lift_date)).to include('123456')
+      end
+      it 'display specific restriction note instead when present when doc is walk-in' do
+        expect(subject.send(:restrictions_display_text, doc_walkin_restriction_note)).to eq ['restriction']
       end
     end
 
@@ -363,7 +376,7 @@ module Orangetheses
         author_facet = [doc['dc.contributor.author'], doc['dc.contributor'],
                         doc['dc.contributor.advisor'], doc['pu.department']].flatten
         expect(h['author_s']).to match_array(author_facet)
-        expect(h).to include('rights_reproductions_note_display' => doc['dc.rights.accessRights'])
+        expect(h).to include('summary_note_display' => doc['dc.description.abstract'])
       end
       it 'but leaves others out' do
         expect(h).to_not have_key('id')
