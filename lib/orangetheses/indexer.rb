@@ -23,9 +23,8 @@ module Orangetheses
       'dc.contributor.advisor' => ['advisor_display', 'author_s'],
       'dc.contributor' => ['contributor_display', 'author_s'],
       'pu.department' => ['department_display', 'author_s'],
+      'pu.certificate' => ['certificate_display', 'author_s'],
       'dc.format.extent' => ['description_display'],
-      'dc.rights.accessRights' => ['rights_reproductions_note_display'],
-      'pu.location' => ['rights_reproductions_note_display'],
       'dc.description.abstract' => ['summary_note_display']
     }
 
@@ -201,7 +200,7 @@ module Orangetheses
         'title_sort' => title_sort_hash(doc['dc.title']),
         'author_sort' => first_or_nil(doc['dc.contributor.author']),
         'electronic_access_1display' => ark_hash(doc),
-        'restrictions_note_display' => embargo_display_text(doc),
+        'restrictions_note_display' => restrictions_display_text(doc),
         'call_number_display' => call_number(doc['dc.identifier.other']),
         'call_number_browse_s' => call_number(doc['dc.identifier.other']),
         'language_facet' => code_to_language(doc['dc.language.iso'])
@@ -277,7 +276,7 @@ module Orangetheses
 
     def on_site_only?(doc)
       doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights') ||
-      embargo?(doc)
+      embargo?(doc) || walkin?(doc)
     end
 
     def embargo?(doc)
@@ -298,15 +297,29 @@ module Orangetheses
       date
     end
 
-    def embargo_display_text(doc)
+    def walkin?(doc)
+      walkin = doc['pu.mudd.walkin']
+      !walkin.nil? && walkin.first == 'yes'
+    end
+
+    def restrictions_display_text(doc)
       if embargo?(doc)
         date = embargo(doc)
         "This content is embargoed until #{date}. For more information contact the "\
         "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc['id']}\"> "\
         "Mudd Manuscript Library</a>."
+      elsif doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
+        [doc['pu.location'], doc['dc.rights.accessRights']].flatten.compact
+      elsif walkin?(doc)
+        walkin_text
       else
         nil
       end
+    end
+
+    def walkin_text
+      'Walk-in Access. This thesis can only be viewed on computer terminals at the '\
+      '<a href=\"http://mudd.princeton.edu\">Mudd Manuscript Library</a>.'
     end
 
     def dataspace

@@ -35,6 +35,8 @@ module Orangetheses
             {"key"=>"pu.date.classyear", "value"=>"2013", "language"=>"en_US"},
             {"key"=>"pu.department", "value"=>"English", "language"=>"en_US"},
             {"key"=>"pu.department", "value"=>"NA", "language"=>"en_US"},
+            {"key"=>"pu.certificate", "value"=>"Creative Writing Program", "language"=>"en_US"},
+            {"key"=>"pu.certificate", "value"=>"NA", "language"=>"en_US"},
             {"key"=>"pu.pdf.coverpage", "value"=>"SeniorThesisCoverPage", "language"=>nil},
             {"key"=>"dc.rights.accessRights", "value"=>"Walk-in Access...", "language"=>nil}
           ],
@@ -62,6 +64,12 @@ module Orangetheses
         expect(subject['pu.department']).to include('Princeton University. Department of English')
         expect(subject['pu.department']).not_to include('NA')
         expect(subject['pu.department'].length).to eq 1
+      end
+
+      it "maps pu.department to LC authorized name, excludes values not in name list" do
+        expect(subject['pu.certificate']).to include('Princeton University. Creative Writing Program')
+        expect(subject['pu.certificate']).not_to include('NA')
+        expect(subject['pu.certificate'].length).to eq 1
       end
     end
 
