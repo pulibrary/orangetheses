@@ -43,6 +43,7 @@ module Orangetheses
 
     describe '#_get_links' do
       let(:elements) { [
+          create_element('id', '12345'),
           create_element('link', 'site/title.jpg'),
           create_element('link', 'other.com/url'),
           create_element('colllink', 'finally.org/messy file.pdf')
@@ -63,9 +64,9 @@ module Orangetheses
         expect(links.has_key?('site/title.jpg')).to be true
         expect(links.has_key?('other.com/url')).to be true
       end
-      it 'hash includes colllink elements' do
+      it 'hash includes colllink elements when 301 status' do
         dbl = double
-        allow(dbl).to receive(:status).and_return(200)
+        allow(dbl).to receive(:status).and_return(301)
         allow(Faraday).to receive(:get) { dbl }
         expect(links.has_key?('finally.org/messy file.pdf')).to be true
       end

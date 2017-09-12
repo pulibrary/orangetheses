@@ -16,7 +16,7 @@ module Orangetheses
     SEPARATOR = '—'
 
     ### Unique visual xml elements ###
-    # id: solr id 
+    # id: solr id
     # title: title display
     # othertitle: other title field
     # imprint: publication display
@@ -62,7 +62,7 @@ module Orangetheses
     def initialize(solr_server=nil)
       solr_server = 'http://localhost:8888/solr/blacklight-core' if solr_server.nil?
       @tmpdir = Dir.mktmpdir
-      @solr = RSolr.connect(url: solr_server)
+      @solr = RSolr.connect(url: solr_server, read_timeout: 120, open_timeout: 120)
       @logger = Logger.new(STDOUT)
       @logger.level = Logger::INFO
       @logger.formatter = proc do |severity, datetime, progname, msg|
@@ -167,7 +167,7 @@ module Orangetheses
       elsif year.length == 3
         '0' + year
       elsif year == 'uuuu'
-        nil   
+        nil
       else
         year
       end
@@ -197,8 +197,12 @@ module Orangetheses
       links = elements.select { |e| e.name == 'link' || e.name == 'colllink' }
       working_links = []
       links.each do |link|
-        if Faraday.get(URI.escape(link.text)).status == 200
+        link_status = Faraday.get(URI.escape(link.text)).status
+        if link_status == 200
           working_links << link
+        elsif link_status == 301
+          working_links << link
+          @logger.info("#{id(elements)}: Link redirect #{link.text}")
         else
         @logger.info("#{id(elements)}: Bad link #{link.text}")
         end
