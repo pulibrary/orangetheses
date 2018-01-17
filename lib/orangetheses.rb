@@ -19,3 +19,5 @@ module Orangetheses
   autoload :Indexer, 'orangetheses/indexer'
   autoload :Visual, 'orangetheses/visual'
 end
+
+require 'orangetheses/railtie' if defined?(Rails)
