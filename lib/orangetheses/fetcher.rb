@@ -1,12 +1,14 @@
 require 'faraday'
 require 'json'
 require 'tmpdir'
+require 'openssl'
+OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
 
 module Orangetheses
   class Fetcher
 
     # @param [Hash] opts  options to pass to the client
-    # @option opts [String] :server ('http://dataspace.princeton.edu/rest/')
+    # @option opts [String] :server ('https://dataspace.princeton.edu/rest/')
     # @option opts [String] :community ('267')
     def initialize(server: SERVER_URL,
                    community: COMMUNITY_HANDLE)
