@@ -4,14 +4,14 @@ module Orangetheses
   #$test = true
   # OAI
   SET = 'com_88435_dsp019c67wm88m'
-  PMH_SERVER = 'http://dataspace.princeton.edu/oai/request'
-  PMH_SERVER = 'http://updatespace.princeton.edu/oai/request' if $test
+  PMH_SERVER = 'https://dataspace.princeton.edu/oai/request'
+  PMH_SERVER = 'https://updatespace.princeton.edu/oai/request' if $test
   METADATA_PREFIX = 'oai_dc'
 
   # REST service
   COMMUNITY_HANDLE = '88435/dsp019c67wm88m'
-  SERVER_URL = 'http://dataspace.princeton.edu/rest'
-  SERVER_URL = 'http://updatespace.princeton.edu/rest' if $test
+  SERVER_URL = 'https://dataspace.princeton.edu/rest'
+  SERVER_URL = 'https://updatespace.princeton.edu/rest' if $test
   REST_LIMIT = 100
 
   autoload :Harvester, 'orangetheses/harvester'
