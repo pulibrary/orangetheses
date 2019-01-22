@@ -113,6 +113,7 @@ module Orangetheses
 
     def lc_authorized_departments
       {
+        "African American Studies" => "Princeton University. Department of African American Studies",
         "Art and Archaeology" => "Princeton University. Department of Art and Archaeology",
         "Aeronautical Engineering" => "Princeton University. Department of Aeronautical Engineering",
         "Anthropology" => "Princeton University. Department of Anthropology",
