@@ -51,7 +51,7 @@ module Orangetheses
       }
       let(:check_links) { [
           create_element('id', '12345'),
-          create_element('link', 'http://libweb5.princeton.edu/visual_materials/ga/West portrait.jpg'),
+          create_element('link', 'http://google.com'),
           create_element('link', 'http://libweb5.princeton.edu/visual_materials/ga/bad link.jpg'),
           create_element('colllink', 'http://libweb5.princeton.edu/visual_materials/ga/new york from brooklyn heights1.jpg')
         ]
@@ -80,7 +80,7 @@ module Orangetheses
       end
       it 'excludes links that do not resolve' do
         links = JSON.parse(subject.send(:get_links, check_links))
-        expect(links.has_key?('http://libweb5.princeton.edu/visual_materials/ga/West portrait.jpg')).to be true
+        expect(links.has_key?('http://google.com')).to be true
         expect(links.has_key?('http://libweb5.princeton.edu/visual_materials/ga/bad link.jpg')).to be false
       end
     end
