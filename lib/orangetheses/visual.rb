@@ -4,9 +4,11 @@ require 'chronic'
 require 'logger'
 require 'json'
 require 'faraday'
+require 'faraday_middleware'
 require 'rubygems/package'
 require 'zlib'
 require 'tmpdir'
+require 'uri'
 
 module Orangetheses
   class Visual
@@ -193,24 +195,43 @@ module Orangetheses
       end
     end
 
+    def http_client
+      @http_client ||= begin
+                         Faraday.new do |c|
+                           c.use FaradayMiddleware::FollowRedirects, limit: 2
+                           c.adapter Faraday.default_adapter
+                         end
+                       end
+    end
+
     def get_links(elements)
       links = elements.select { |e| e.name == 'link' || e.name == 'colllink' }
       working_links = []
       links.each do |link|
-        link_status = Faraday.get(URI.escape(link.text)).status
-        if link_status == 200
-          working_links << link
-        elsif link_status == 301
-          working_links << link
-          @logger.info("#{id(elements)}: Link redirect #{link.text}")
+        escaped_url = URI.escape(link.text)
+
+        if escaped_url =~ URI::regexp
+          http_response = http_client.get(escaped_url)
+          link_status = http_response.status
+
+          if link_status == 200
+            working_links << link
+          elsif link_status == 301
+            working_links << link
+            @logger.info("#{id(elements)}: Link redirect #{link.text}")
+          else
+            @logger.info("#{id(elements)}: Bad link #{link.text}")
+          end
         else
-        @logger.info("#{id(elements)}: Bad link #{link.text}")
+          @logger.info("#{id(elements)}: Invalid URI #{link.text}")
         end
       end
-      return nil if working_links.empty?
+
       link_hash = {}
       working_links.each { |l| link_hash[l.text] = [l.text.split('/').last.capitalize] }
-      link_hash.to_json.to_s
+
+      json_output = link_hash.to_json
+      json_output.to_s
     end
 
     def holdings(elements, location_code)

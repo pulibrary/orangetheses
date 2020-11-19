@@ -44,9 +44,9 @@ module Orangetheses
     describe '#_get_links' do
       let(:elements) { [
           create_element('id', '12345'),
-          create_element('link', 'site/title.jpg'),
-          create_element('link', 'other.com/url'),
-          create_element('colllink', 'finally.org/messy file.pdf')
+          create_element('link', 'http://localhost/site/title.jpg'),
+          create_element('link', 'http://other.com/url'),
+          create_element('colllink', 'http://finally.org/messy file.pdf')
         ]
       }
       let(:check_links) { [
@@ -56,24 +56,39 @@ module Orangetheses
           create_element('colllink', 'http://libweb5.princeton.edu/visual_materials/ga/new york from brooklyn heights1.jpg')
         ]
       }
-      let(:links) { JSON.parse(subject.send(:get_links, elements)) }
+      let(:output) do
+        subject.send(:get_links, elements)
+      end
+      let(:links) { JSON.parse(output) }
       it 'hash includes link elements' do
+        http_response_stub = double
+        allow(http_response_stub).to receive(:status).and_return(200)
+
         dbl = double
-        allow(dbl).to receive(:status).and_return(200)
-        allow(Faraday).to receive(:get) { dbl }
-        expect(links.has_key?('site/title.jpg')).to be true
-        expect(links.has_key?('other.com/url')).to be true
+        allow(dbl).to receive(:get).and_return(http_response_stub)
+        allow(Faraday).to receive(:new) { dbl }
+
+        expect(links.has_key?('http://localhost/site/title.jpg')).to be true
+        expect(links.has_key?('http://other.com/url')).to be true
       end
       it 'hash includes colllink elements when 301 status' do
+        http_response_stub = double
+        allow(http_response_stub).to receive(:status).and_return(301)
+
         dbl = double
-        allow(dbl).to receive(:status).and_return(301)
-        allow(Faraday).to receive(:get) { dbl }
-        expect(links.has_key?('finally.org/messy file.pdf')).to be true
+        allow(dbl).to receive(:get).and_return(http_response_stub)
+        allow(Faraday).to receive(:new) { dbl }
+
+        expect(links.has_key?('http://finally.org/messy file.pdf')).to be true
       end
       it 'display text is filename after last slash with first word capitalized' do
+        http_response_stub = double
+        allow(http_response_stub).to receive(:status).and_return(200)
+
         dbl = double
-        allow(dbl).to receive(:status).and_return(200)
-        allow(Faraday).to receive(:get) { dbl }
+        allow(dbl).to receive(:get).and_return(http_response_stub)
+        allow(Faraday).to receive(:new) { dbl }
+
         expect(links.values.flatten.include?('Title.jpg')).to be true
         expect(links.values.flatten.include?('Url')).to be true
         expect(links.values.flatten.include?('Messy file.pdf')).to be true
