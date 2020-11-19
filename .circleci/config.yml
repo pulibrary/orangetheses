@@ -1,7 +1,7 @@
 version: 2
 jobs:
   build:
-    working_directory: ~/pulibrary/orangetheses
+    working_directory: ~/orangetheses
 
     docker:
       - image: circleci/ruby:2.4.2-node-browsers
