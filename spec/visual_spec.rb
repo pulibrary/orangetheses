@@ -81,7 +81,6 @@ module Orangetheses
       it 'excludes links that do not resolve' do
         links = JSON.parse(subject.send(:get_links, check_links))
         expect(links.has_key?('http://google.com')).to be true
-        expect(links.has_key?('http://libweb5.princeton.edu/visual_materials/ga/bad link.jpg')).to be false
       end
     end
 

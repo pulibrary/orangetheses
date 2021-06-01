@@ -101,7 +101,7 @@ module Orangetheses
         'access_facet' => 'Online',
         'electronic_access_1display' => ark(dc_elements),
         'standard_no_1display' => non_ark_ids(dc_elements),
-        'holdings_1display' => online_holding({})
+        'electronic_portfolio_s' => online_holding({})
       }
       h.merge!(map_non_special_to_solr(dc_elements))
       h.merge!(HARD_CODED_TO_ADD)
@@ -145,9 +145,6 @@ module Orangetheses
     def online_holding(doc)
       {
         'thesis' => {
-          'location' => 'Online',
-          'library' => 'Online',
-          'location_code' => 'elf1',
           'call_number' => call_number(doc['dc.identifier.other']),
           'call_number_browse' => call_number(doc['dc.identifier.other']),
           'dspace' => true
@@ -416,9 +413,7 @@ module Orangetheses
       else
         {
           'access_facet' => 'Online',
-          'location_code_s' => 'elf1',
-          'advanced_location_s' => ['elf1', 'Online'],
-          'holdings_1display' => online_holding(doc)
+          'electronic_portfolio_s' => online_holding(doc)
         }
       end
     end
