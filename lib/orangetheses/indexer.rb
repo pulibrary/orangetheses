@@ -101,7 +101,7 @@ module Orangetheses
         'access_facet' => 'Online',
         'electronic_access_1display' => ark(dc_elements),
         'standard_no_1display' => non_ark_ids(dc_elements),
-        'holdings_1display' => online_holding({})
+        'electronic_portfolio_s' => online_holding({})
       }
       h.merge!(map_non_special_to_solr(dc_elements))
       h.merge!(HARD_CODED_TO_ADD)
@@ -145,9 +145,6 @@ module Orangetheses
     def online_holding(doc)
       {
         'thesis' => {
-          'location' => 'Online',
-          'library' => 'Online',
-          'location_code' => 'elf1',
           'call_number' => call_number(doc['dc.identifier.other']),
           'call_number_browse' => call_number(doc['dc.identifier.other']),
           'dspace' => true
@@ -158,9 +155,9 @@ module Orangetheses
     def physical_holding(doc, accessible: true)
       {
         'thesis' => {
-          'location' => 'Mudd Manuscript Library',
-          'library' => 'Mudd Manuscript Library',
-          'location_code' => 'mudd',
+          'location' => 'Seeley G. Mudd Library (Mudd)',
+          'library' => 'Seeley G. Mudd Library (Mudd)',
+          'location_code' => 'mudd$stacks',
           'call_number' => call_number(doc['dc.identifier.other']),
           'call_number_browse' =>call_number(doc['dc.identifier.other']),
           'dspace' => accessible
@@ -307,7 +304,7 @@ module Orangetheses
         date = embargo(doc)
         "This content is embargoed until #{date}. For more information contact the "\
         "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc['id']}\"> "\
-        "Mudd Manuscript Library</a>."
+        "Seeley G. Mudd Library (Mudd)</a>."
       elsif doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
         [doc['pu.location'], doc['dc.rights.accessRights']].flatten.compact
       elsif walkin?(doc)
@@ -319,7 +316,7 @@ module Orangetheses
 
     def walkin_text
       'Walk-in Access. This thesis can only be viewed on computer terminals at the '\
-      '<a href=\"http://mudd.princeton.edu\">Mudd Manuscript Library</a>.'
+      '<a href=\"http://mudd.princeton.edu\">Seeley G. Mudd Library (Mudd)</a>.'
     end
 
     def dataspace
@@ -398,27 +395,25 @@ module Orangetheses
     def holdings_access(doc)
       if embargo?(doc)
         {
-          'location' => 'Mudd Manuscript Library',
-          'location_display' => 'Mudd Manuscript Library',
-          'location_code_s' => 'mudd',
-          'advanced_location_s' => ['mudd', 'Mudd Manuscript Library'],
+          'location' => 'Seeley G. Mudd Library (Mudd)',
+          'location_display' => 'Seeley G. Mudd Library (Mudd)',
+          'location_code_s' => 'mudd$stacks',
+          'advanced_location_s' => ['mudd$stacks', 'Seeley G. Mudd Library (Mudd)'],
           'holdings_1display' => physical_holding(doc, accessible: false)
         }
       elsif on_site_only?(doc)
         {
-          'location' => 'Mudd Manuscript Library',
-          'location_display' => 'Mudd Manuscript Library',
-          'location_code_s' => 'mudd',
-          'advanced_location_s' => ['mudd', 'Mudd Manuscript Library'],
+          'location' => 'Seeley G. Mudd Library (Mudd)',
+          'location_display' => 'Seeley G. Mudd Library (Mudd)',
+          'location_code_s' => 'mudd$stacks',
+          'advanced_location_s' => ['mudd$stacks', 'Seeley G. Mudd Library (Mudd)'],
           'access_facet' => 'In the Library',
           'holdings_1display' => physical_holding(doc)
         }
       else
         {
           'access_facet' => 'Online',
-          'location_code_s' => 'elf1',
-          'advanced_location_s' => ['elf1', 'Online'],
-          'holdings_1display' => online_holding(doc)
+          'electronic_portfolio_s' => online_holding(doc)
         }
       end
     end

@@ -466,7 +466,7 @@ module Orangetheses
           expect(subject.send(:holdings_access, doc_restrictions)['access_facet']).to eq('In the Library')
         end
         it 'includes mudd as an advanced location value' do
-          expect(subject.send(:holdings_access, doc_restrictions)['advanced_location_s']).to include('Mudd Manuscript Library')
+          expect(subject.send(:holdings_access, doc_restrictions)['advanced_location_s']).to include('Seeley G. Mudd Library (Mudd)')
         end
         it 'holdings include call number' do
           expect(physical_holding['thesis'].has_key?('call_number')).to be true
@@ -483,7 +483,7 @@ module Orangetheses
           expect(subject.send(:holdings_access, doc_embargo)['access_facet']).to be_nil
         end
         it 'includes mudd as an advanced location value' do
-          expect(subject.send(:holdings_access, doc_embargo)['advanced_location_s']).to include('Mudd Manuscript Library')
+          expect(subject.send(:holdings_access, doc_embargo)['advanced_location_s']).to include('Seeley G. Mudd Library (Mudd)')
         end
         it 'holdings include call number' do
           expect(embargo_holding['thesis'].has_key?('call_number_browse')).to be true
@@ -492,12 +492,13 @@ module Orangetheses
           expect(embargo_holding['thesis']['dspace']).to be false
         end
       end
+      # Alma update
       describe 'online' do
         it 'online access for record without restrictions note' do
           expect(subject.send(:holdings_access, doc_no_restrictions)['access_facet']).to eq('Online')
         end
-        it 'includes online as an advanced location value' do
-          expect(subject.send(:holdings_access, doc_no_restrictions)['advanced_location_s']).to include('Online')
+        it 'electronic portfolio field' do
+          expect(subject.send(:holdings_access, doc_no_restrictions)['electronic_portfolio_s']).to include('thesis')
         end
         it 'holdings include call number' do
           expect(online_holding['thesis'].has_key?('call_number')).to be true
