@@ -155,8 +155,8 @@ module Orangetheses
     def physical_holding(doc, accessible: true)
       {
         'thesis' => {
-          'location' => 'Seeley G. Mudd Library (Mudd)',
-          'library' => 'Seeley G. Mudd Library (Mudd)',
+          'location' => 'Mudd Manuscript Library',
+          'library' => 'Mudd Manuscript Library',
           'location_code' => 'mudd$stacks',
           'call_number' => call_number(doc['dc.identifier.other']),
           'call_number_browse' =>call_number(doc['dc.identifier.other']),
@@ -304,7 +304,7 @@ module Orangetheses
         date = embargo(doc)
         "This content is embargoed until #{date}. For more information contact the "\
         "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc['id']}\"> "\
-        "Seeley G. Mudd Library (Mudd)</a>."
+        "Mudd Manuscript Library</a>."
       elsif doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
         [doc['pu.location'], doc['dc.rights.accessRights']].flatten.compact
       elsif walkin?(doc)
@@ -316,7 +316,7 @@ module Orangetheses
 
     def walkin_text
       'Walk-in Access. This thesis can only be viewed on computer terminals at the '\
-      '<a href=\"http://mudd.princeton.edu\">Seeley G. Mudd Library (Mudd)</a>.'
+      '<a href=\"http://mudd.princeton.edu\">Mudd Manuscript Library</a>.'
     end
 
     def dataspace
@@ -395,18 +395,18 @@ module Orangetheses
     def holdings_access(doc)
       if embargo?(doc)
         {
-          'location' => 'Seeley G. Mudd Library (Mudd)',
-          'location_display' => 'Seeley G. Mudd Library (Mudd)',
+          'location' => 'Mudd Manuscript Library',
+          'location_display' => 'Mudd Manuscript Library',
           'location_code_s' => 'mudd$stacks',
-          'advanced_location_s' => ['mudd$stacks', 'Seeley G. Mudd Library (Mudd)'],
+          'advanced_location_s' => ['mudd$stacks', 'Mudd Manuscript Library'],
           'holdings_1display' => physical_holding(doc, accessible: false)
         }
       elsif on_site_only?(doc)
         {
-          'location' => 'Seeley G. Mudd Library (Mudd)',
-          'location_display' => 'Seeley G. Mudd Library (Mudd)',
+          'location' => 'Mudd Manuscript Library',
+          'location_display' => 'Mudd Manuscript Library',
           'location_code_s' => 'mudd$stacks',
-          'advanced_location_s' => ['mudd$stacks', 'Seeley G. Mudd Library (Mudd)'],
+          'advanced_location_s' => ['mudd$stacks', 'Mudd Manuscript Library'],
           'access_facet' => 'In the Library',
           'holdings_1display' => physical_holding(doc)
         }
