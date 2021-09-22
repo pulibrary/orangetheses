@@ -1,9 +1,10 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'rexml/document'
 
 module Orangetheses
   describe Visual do
-
     def load_fixture(name)
       REXML::Document.new(File.new(fixture_path(name))).root
     end
@@ -17,11 +18,12 @@ module Orangetheses
     let(:fixture) { load_fixture 'visuals.xml' }
 
     describe '#_select_element' do
-      let(:elements) { [
+      let(:elements) do
+        [
           create_element('format', 'anything'),
           create_element('something', 'else')
         ]
-      }
+      end
       it 'returns text of matched element' do
         expect(subject.send(:select_element, elements, 'format')).to eq 'anything'
         expect(subject.send(:select_element, elements, 'something')).to eq 'else'
@@ -32,43 +34,46 @@ module Orangetheses
     end
 
     describe '#_id' do
-      let(:elements) { [
+      let(:elements) do
+        [
           create_element('id', 'anything')
         ]
-      }
+      end
       it 'prepends id element with visuals' do
         expect(subject.send(:id, elements)).to eq('visualsanything')
       end
     end
 
     describe '#_get_links' do
-      let(:elements) { [
+      let(:elements) do
+        [
           create_element('id', '12345'),
           create_element('link', 'site/title.jpg'),
           create_element('link', 'other.com/url'),
           create_element('colllink', 'finally.org/messy file.pdf')
         ]
-      }
-      let(:check_links) { [
+      end
+      let(:check_links) do
+        [
           create_element('id', '12345'),
           create_element('link', 'http://google.com'),
           create_element('link', 'http://libweb5.princeton.edu/visual_materials/ga/bad link.jpg'),
           create_element('colllink', 'http://libweb5.princeton.edu/visual_materials/ga/new york from brooklyn heights1.jpg')
         ]
-      }
+      end
       let(:links) { JSON.parse(subject.send(:get_links, elements)) }
       it 'hash includes link elements' do
         dbl = double
         allow(dbl).to receive(:status).and_return(200)
         allow(Faraday).to receive(:get) { dbl }
-        expect(links.has_key?('site/title.jpg')).to be true
-        expect(links.has_key?('other.com/url')).to be true
+        expect(links.key?('site/title.jpg')).to be true
+        expect(links.key?('other.com/url')).to be true
       end
       it 'hash includes colllink elements when 301 status' do
         dbl = double
         allow(dbl).to receive(:status).and_return(301)
         allow(Faraday).to receive(:get) { dbl }
-        expect(links.has_key?('finally.org/messy file.pdf')).to be true
+        expect(links.key?('finally.org/messy file.pdf')).to be true
       end
       it 'display text is filename after last slash with first word capitalized' do
         dbl = double
@@ -80,12 +85,12 @@ module Orangetheses
       end
       it 'excludes links that do not resolve' do
         links = JSON.parse(subject.send(:get_links, check_links))
-        expect(links.has_key?('http://google.com')).to be true
+        expect(links.key?('http://google.com')).to be true
       end
     end
 
     describe '#_related_names' do
-      before(:each) { subject.send(:related_names, doc) }
+      before { subject.send(:related_names, doc) }
       describe 'with one name' do
         let(:doc) do
           {
@@ -102,11 +107,11 @@ module Orangetheses
       describe 'with few names' do
         let(:doc) do
           {
-            'author_display' => ['Author1', 'Related1', 'Related2']
+            'author_display' => %w[Author1 Related1 Related2]
           }
         end
         it 'author display field unchanged' do
-          expect(doc['author_display']).to eq(['Author1', 'Related1', 'Related2'])
+          expect(doc['author_display']).to eq(%w[Author1 Related1 Related2])
         end
         it 'related names field is nil' do
           expect(doc['related_name_json_1display']).to be_nil
@@ -115,7 +120,7 @@ module Orangetheses
       describe 'with many names' do
         let(:doc) do
           {
-            'author_display' => ['Author1', 'R1', 'R2', 'R3', 'R4']
+            'author_display' => %w[Author1 R1 R2 R3 R4]
           }
         end
         it 'author display field only first value' do
@@ -123,7 +128,7 @@ module Orangetheses
         end
         it 'contributors in related name field' do
           names = JSON.parse(doc['related_name_json_1display'])['Related name']
-          expect(names).to eq(['R1', 'R2', 'R3', 'R4'])
+          expect(names).to eq(%w[R1 R2 R3 R4])
         end
       end
     end
@@ -131,13 +136,13 @@ module Orangetheses
     describe '#_get_locations' do
       let(:locations) { subject.send(:get_locations) }
       it 'hash values contains library info and holding location label' do
-        expect(locations['ex'].has_key?('label')).to be true
-        expect(locations['ex'].has_key?('library')).to be true
+        expect(locations['ex'].key?('label')).to be true
+        expect(locations['ex'].key?('library')).to be true
       end
     end
 
     describe '#_get_library' do
-      let(:locations) {
+      let(:locations) do
         {
           'ga' =>
           {
@@ -146,11 +151,11 @@ module Orangetheses
             'library' =>
             {
               'label' => 'Rare Books and Special Collections',
-              'code'=>'rare'
+              'code' => 'rare'
             }
           }
         }
-      }
+      end
       it 'returns library label for holding location code' do
         allow(subject).to receive(:get_locations) { locations }
         expect(subject.send(:get_library, 'ga')).to eq(locations['ga']['library']['label'])
@@ -158,7 +163,7 @@ module Orangetheses
     end
 
     describe '#_location_full_display' do
-      let(:locations) {
+      let(:locations) do
         {
           'ga' =>
           {
@@ -167,12 +172,12 @@ module Orangetheses
             'library' =>
             {
               'label' => 'Rare Books and Special Collections',
-              'code'=>'rare'
+              'code' => 'rare'
             }
           }
         }
-      }
-      let(:locations_no_label) {
+      end
+      let(:locations_no_label) do
         {
           'nolabel' =>
           {
@@ -181,11 +186,11 @@ module Orangetheses
             'library' =>
             {
               'label' => 'Rare Books and Special Collections',
-              'code'=>'rare'
+              'code' => 'rare'
             }
           }
         }
-      }
+      end
       it 'returns library label plus label when available' do
         allow(subject).to receive(:get_locations) { locations }
         expect(subject.send(:location_full_display, 'ga')).to eq('Rare Books and Special Collections - Graphic Arts Collection')
@@ -212,43 +217,50 @@ module Orangetheses
     end
 
     describe '#_get_location_code' do
-      let(:elements) {
+      let(:elements) do
         REXML::Document.new('<holdings><collection>code</collection></holdings>').to_a
-      }
+      end
       it 'location code is collection element embedded in holdings' do
         expect(subject.send(:get_location_code, elements)).to eq('code')
       end
     end
 
     describe '#_choose_date' do
-      let(:century) { [
+      let(:century) do
+        [
           create_element('year1', '18')
         ]
-      }
-      let(:catalog_error) { [
+      end
+      let(:catalog_error) do
+        [
           create_element('year1', '8981')
         ]
-      }
-      let(:catalog_173) { [
+      end
+      let(:catalog_173) do
+        [
           create_element('year1', '173')
         ]
-      }
-      let(:three_digit) { [
+      end
+      let(:three_digit) do
+        [
           create_element('year1', '888')
         ]
-      }
-      let(:four_digit) { [
+      end
+      let(:four_digit) do
+        [
           create_element('year1', '1888')
         ]
-      }
-      let(:unknown) { [
+      end
+      let(:unknown) do
+        [
           create_element('year1', 'uuuu')
         ]
-      }
-      let(:no_date) { [
+      end
+      let(:no_date) do
+        [
           create_element('blah', 'blah')
         ]
-      }
+      end
       it 'leaves date alone if 4 digits' do
         expect(subject.send(:choose_date, four_digit)).to eq '1888'
       end
@@ -273,24 +285,27 @@ module Orangetheses
     end
 
     describe '#_genre' do
-      let(:elements) { [
+      let(:elements) do
+        [
           create_element('genreform', 'uncapitalized genre')
         ]
-      }
+      end
       it 'capitalizes genreform element' do
         expect(subject.send(:genre, elements)).to eq 'Uncapitalized genre'
       end
     end
 
     describe '#_title_sort' do
-      let(:stop_word) { [
+      let(:stop_word) do
+        [
           create_element('title', 'A good title')
         ]
-      }
-      let(:non_alphanum) { [
+      end
+      let(:non_alphanum) do
+        [
           create_element('title', '!!!Woot2!')
         ]
-      }
+      end
       it 'strips out stop words' do
         expect(subject.send(:title_sort, stop_word)).to eq 'goodtitle'
       end
@@ -300,12 +315,13 @@ module Orangetheses
     end
 
     describe '#_holdings' do
-      let(:elements) { [
+      let(:elements) do
+        [
           create_element('callno', 'GA 145'),
           create_element('physicallocation', 'Shelf 2B')
         ]
-      }
-      let(:locations) {
+      end
+      let(:locations) do
         {
           'ga' =>
           {
@@ -314,15 +330,15 @@ module Orangetheses
             'library' =>
             {
               'label' => 'Rare Books and Special Collections',
-              'code'=>'rare'
+              'code' => 'rare'
             }
           }
         }
-      }
+      end
       describe 'typical holdings' do
         let(:holdings) { JSON.parse(subject.send(:holdings, elements, 'ga')) }
         it 'holding id (key) is visuals' do
-          expect(holdings.has_key?('visuals')).to be true
+          expect(holdings.key?('visuals')).to be true
         end
         it 'holding code is provided location code' do
           expect(holdings['visuals']['location_code']).to eq 'ga'
@@ -331,11 +347,11 @@ module Orangetheses
           expect(holdings['visuals']['dspace']).to be true
         end
         it 'library label is included for location code' do
-        allow(subject).to receive(:get_locations) { locations }
+          allow(subject).to receive(:get_locations) { locations }
           expect(holdings['visuals']['library']).to eq subject.send(:get_library, 'ga')
         end
         it 'full location label is included for location code' do
-        allow(subject).to receive(:get_locations) { locations }
+          allow(subject).to receive(:get_locations) { locations }
           expect(holdings['visuals']['location']).to eq subject.send(:location_full_display, 'ga')
         end
         it 'Includes a call number field when callno is present' do
@@ -351,7 +367,7 @@ module Orangetheses
       describe 'holdings missing everything' do
         let(:holdings_empty) { JSON.parse(subject.send(:holdings, [], nil)) }
         it 'holding id (key) is visuals' do
-          expect(holdings_empty.has_key?('visuals')).to be true
+          expect(holdings_empty.key?('visuals')).to be true
         end
         it 'holding code is elfvisuals when no location code' do
           expect(holdings_empty['visuals']['location_code']).to eq 'elfvisuals'
@@ -378,24 +394,28 @@ module Orangetheses
     end
 
     describe '#_publication' do
-      let(:elements) { [
+      let(:elements) do
+        [
           create_element('imprint', 'London.'),
           create_element('unitdate', '1975')
         ]
-      }
-      let(:elements_just_date) { [
+      end
+      let(:elements_just_date) do
+        [
           create_element('unitdate', '1975')
         ]
-      }
-      let(:elements_just_imprint) { [
+      end
+      let(:elements_just_imprint) do
+        [
           create_element('imprint', 'london')
         ]
-      }
-      let(:elements_uncapitalized) { [
+      end
+      let(:elements_uncapitalized) do
+        [
           create_element('imprint', 'london press inc'),
           create_element('unitdate', 'd. early 1975')
         ]
-      }
+      end
       it 'combines imprint and unitdate separated by comma, strips imprint punctuation' do
         expect(subject.send(:publication, elements)).to eq 'London, 1975'
       end
@@ -411,12 +431,13 @@ module Orangetheses
     end
 
     describe '#subjects_fields' do
-      let(:elements) { [
+      let(:elements) do
+        [
           create_element('subject', 'one--two--three'),
           create_element('subject', 'one--four--five'),
           create_element('subject', 'special')
         ]
-      }
+      end
       let(:subject_fields) { subject.send(:subjects_fields, elements) }
       let(:subject_display) { subject_fields['subject_display'] }
       let(:subject_facet) { subject_fields['subject_facet'] }
@@ -425,7 +446,7 @@ module Orangetheses
         expect(subject_display).to eq(subject_facet)
       end
       it 'subject_topic_facet splits subjects on --' do
-        expect(subject_topic_facet).to match_array ['one', 'two', 'three', 'four', 'five', 'special']
+        expect(subject_topic_facet).to match_array %w[one two three four five special]
       end
       it 'subject_display replaces -- with em dash' do
         expect(subject_display).to match_array ['one—two—three', 'one—four—five', 'special']

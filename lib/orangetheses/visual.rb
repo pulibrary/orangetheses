@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'rsolr'
 require 'rexml/document'
 require 'chronic'
@@ -10,7 +12,6 @@ require 'tmpdir'
 
 module Orangetheses
   class Visual
-
     VISUALS = 'VisualsResults.tar.gz'
     VISUALS_URL = "http://libweb5.princeton.edu/NewStaff/visuals/#{VISUALS}"
     SEPARATOR = '—'
@@ -46,27 +47,27 @@ module Orangetheses
     # primoItem: <holdings><item>: callno + physicallocation
     # temdata: <holdings><item>: identical to physical location
     NON_SPECIAL_ELEMENT_MAPPING = {
-      'creator' => ['author_display', 'author_s'],
-      'contributor' => ['author_display', 'author_s'],
+      'creator' => %w[author_display author_s],
+      'contributor' => %w[author_display author_s],
       'physdesc' => ['description_display'],
       'note' => ['notes_display'],
       'acqinfo' => ['source_acquisition_display'],
       'unitdate' => ['pub_date_display'],
-      'callno' => ['call_number_display', 'call_number_browse_s']
-    }
+      'callno' => %w[call_number_display call_number_browse_s]
+    }.freeze
 
     HARD_CODED_TO_ADD = {
       'format' => 'Visual material'
-    }
+    }.freeze
 
-    def initialize(solr_server=nil)
+    def initialize(solr_server = nil)
       solr_server = 'http://localhost:8888/solr/blacklight-core' if solr_server.nil?
       @tmpdir = Dir.mktmpdir
       @solr = RSolr.connect(url: solr_server, read_timeout: 120, open_timeout: 120)
       @logger = Logger.new(STDOUT)
       @logger.level = Logger::INFO
-      @logger.formatter = proc do |severity, datetime, progname, msg|
-        time = datetime.strftime("%H:%M:%S")
+      @logger.formatter = proc do |severity, datetime, _progname, msg|
+        time = datetime.strftime('%H:%M:%S')
         "[#{time}] #{severity}: #{msg}\n"
       end
     end
@@ -88,11 +89,10 @@ module Orangetheses
       `tar -zxvf #{@tmpdir}/#{VISUALS} -C #{@tmpdir}`
     end
 
-
     def process_visual_file(visual)
       objects = []
       doc = REXML::Document.new(File.new(visual))
-      doc.elements.each("*/record") {|v| objects << build_hash(v.elements.to_a)}
+      doc.elements.each('*/record') { |v| objects << build_hash(v.elements.to_a) }
       @logger.info("Adding #{visual}")
       @solr.add(objects)
       @solr.commit
@@ -103,22 +103,22 @@ module Orangetheses
       location_code = get_location_code(elements)
       links = get_links(elements)
       h = {
-          'id' => id(elements),
-          'title_t' => select_element(elements, 'title'),
-          'title_citation_display' => select_element(elements, 'title'),
-          'title_display' => select_element(elements, 'title'),
-          'title_sort' => title_sort(elements),
-          'other_title_display' => select_element(elements, 'othertitle'),
-          'other_title_index' => select_element(elements, 'othertitle'),
-          'author_sort' => select_element(elements, 'creator'),
-          'pub_date_start_sort' => choose_date(elements),
-          'pub_date_end_sort' => choose_date(elements),
-          'pub_created_display' => publication(elements),
-          'form_genre_display' => genre(elements),
-          'genre_facet' => genre(elements),
-          'location_code_s' => location_code,
-          'electronic_access_1display' => links,
-          'access_facet' => access_facet(location_code, links)
+        'id' => id(elements),
+        'title_t' => select_element(elements, 'title'),
+        'title_citation_display' => select_element(elements, 'title'),
+        'title_display' => select_element(elements, 'title'),
+        'title_sort' => title_sort(elements),
+        'other_title_display' => select_element(elements, 'othertitle'),
+        'other_title_index' => select_element(elements, 'othertitle'),
+        'author_sort' => select_element(elements, 'creator'),
+        'pub_date_start_sort' => choose_date(elements),
+        'pub_date_end_sort' => choose_date(elements),
+        'pub_created_display' => publication(elements),
+        'form_genre_display' => genre(elements),
+        'genre_facet' => genre(elements),
+        'location_code_s' => location_code,
+        'electronic_access_1display' => links,
+        'access_facet' => access_facet(location_code, links)
       }
       h.merge!(location_info(location_code, elements))
       h.merge!(map_non_special_to_solr(elements))
@@ -139,7 +139,6 @@ module Orangetheses
         @logger.info("#{id(elements)}: Invalid location code #{location_code}")
         {}
       end
-
     end
 
     def related_names(doc)
@@ -163,7 +162,7 @@ module Orangetheses
       elsif year == '173'
         '1730'
       elsif year.length == 2 # century
-        (year.to_i-1).to_s + '00'
+        (year.to_i - 1).to_s + '00'
       elsif year.length == 3
         '0' + year
       elsif year == 'uuuu'
@@ -176,6 +175,7 @@ module Orangetheses
     def get_location_code(elements)
       holdings = elements.select { |e| e.name == 'holdings' }
       return nil if holdings.empty?
+
       locs = holdings.first.elements.select { |e| e.name == 'collection' }
       locs.empty? ? nil : locs.first.text
     end
@@ -188,9 +188,7 @@ module Orangetheses
     def title_sort(elements)
       titles = elements.select { |e| e.name == 'title' }
       title = titles.empty? ? nil : titles.first.text
-      unless title.nil?
-        title.downcase.gsub(/[^\p{Alnum}\s]/, '').gsub(/^(a|an|the)\s/, '').gsub(/\s/,'')
-      end
+      title.downcase.gsub(/[^\p{Alnum}\s]/, '').gsub(/^(a|an|the)\s/, '').gsub(/\s/, '') unless title.nil?
     end
 
     def get_links(elements)
@@ -204,10 +202,11 @@ module Orangetheses
           working_links << link
           @logger.info("#{id(elements)}: Link redirect #{link.text}")
         else
-        @logger.info("#{id(elements)}: Bad link #{link.text}")
+          @logger.info("#{id(elements)}: Bad link #{link.text}")
         end
       end
       return nil if working_links.empty?
+
       link_hash = {}
       working_links.each { |l| link_hash[l.text] = [l.text.split('/').last.capitalize] }
       link_hash.to_json.to_s
@@ -241,17 +240,17 @@ module Orangetheses
       date = elements.select { |e| e.name == 'unitdate' }
       date = date.empty? ? '' : date.first.text
       pubdate = if pub.empty?
-        date
-      elsif date.empty?
-        pub
-      else
-        "#{pub}, #{date}"
+                  date
+                elsif date.empty?
+                  pub
+                else
+                  "#{pub}, #{date}"
       end
       pubdate.empty? ? nil : pubdate.split.map(&:capitalize).join(' ')
     end
 
     def id(elements)
-      id = elements.select { |e| e.name == 'id' }.first.text
+      id = elements.find { |e| e.name == 'id' }.text
       "visuals#{id}"
     end
 
@@ -293,6 +292,7 @@ module Orangetheses
     def subjects_fields(elements)
       subjects = elements.select { |e| e.name == 'subject' }
       return {} if subjects.empty?
+
       full_subjects = []
       split_subjects = []
       subjects.each do |s|
@@ -308,11 +308,11 @@ module Orangetheses
 
     # this is kind of a mess...
     def map_non_special_to_solr(vis_elements)
-      h = { }
+      h = {}
       NON_SPECIAL_ELEMENT_MAPPING.each do |element_name, fields|
         elements = vis_elements.select { |e| e.name == element_name }
         fields.each do |f|
-          if h.has_key?(f)
+          if h.key?(f)
             h[f].push(*elements.map(&:text))
           else
             h[f] = elements.map(&:text)
@@ -323,11 +323,10 @@ module Orangetheses
     end
 
     def collapse_single_val_arrays(h)
-      h.each do |k,v|
+      h.each do |k, v|
         h[k] = v.first if v.is_a?(Array) && v.length == 1
       end
       h
     end
-
   end
 end

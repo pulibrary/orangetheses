@@ -1,9 +1,10 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'rexml/document'
 
 module Orangetheses
   describe Indexer do
-
     def load_fixture(name)
       REXML::Document.new(File.new(fixture_path(name))).root
     end
@@ -18,24 +19,24 @@ module Orangetheses
 
     let(:doc) do
       {
-        "id"=>"dsp01b2773v788",
-        "dc.description.abstract"=>["Summary"],
-        "dc.contributor"=>["Wolff, Tamsen"],
-        "dc.contributor.advisor"=>["Sandberg, Robert"],
-        "dc.contributor.author"=>["Clark, Hillary"],
-        "dc.date.accessioned"=>["2013-07-11T14:31:58Z"],
-        "dc.date.available"=>["2013-07-11T14:31:58Z"],
-        "dc.date.created"=>["2013-04-02"],
-        "dc.date.issued"=>["2013-07-11"],
-        "dc.identifier.uri"=>["http://arks.princeton.edu/ark:/88435/dsp01b2773v788"],
-        "dc.format.extent"=>["102 pages"],
-        "dc.language.iso"=>["en_US"],
-        "dc.title"=>["Dysfunction: A Play in One Act"],
-        "dc.type"=>["Princeton University Senior Theses"],
-        "pu.date.classyear"=>["2014"],
-        "pu.department"=>["Princeton University. Department of English", "Princeton University. Program in Theater"],
-        "pu.pdf.coverpage"=>["SeniorThesisCoverPage"],
-        "dc.rights.accessRights"=>["Walk-in Access..."]
+        'id' => 'dsp01b2773v788',
+        'dc.description.abstract' => ['Summary'],
+        'dc.contributor' => ['Wolff, Tamsen'],
+        'dc.contributor.advisor' => ['Sandberg, Robert'],
+        'dc.contributor.author' => ['Clark, Hillary'],
+        'dc.date.accessioned' => ['2013-07-11T14:31:58Z'],
+        'dc.date.available' => ['2013-07-11T14:31:58Z'],
+        'dc.date.created' => ['2013-04-02'],
+        'dc.date.issued' => ['2013-07-11'],
+        'dc.identifier.uri' => ['http://arks.princeton.edu/ark:/88435/dsp01b2773v788'],
+        'dc.format.extent' => ['102 pages'],
+        'dc.language.iso' => ['en_US'],
+        'dc.title' => ['Dysfunction: A Play in One Act'],
+        'dc.type' => ['Princeton University Senior Theses'],
+        'pu.date.classyear' => ['2014'],
+        'pu.department' => ['Princeton University. Department of English', 'Princeton University. Program in Theater'],
+        'pu.pdf.coverpage' => ['SeniorThesisCoverPage'],
+        'dc.rights.accessRights' => ['Walk-in Access...']
       }
     end
 
@@ -44,36 +45,37 @@ module Orangetheses
     let(:citation) { subject.send(:citation) }
 
     describe '#_pull_dc_elements' do
-
       it 'pulls all of the descriptive elements' do
         elems = subject.send(:pull_dc_elements, fixture1)
-        expected = %w(title creator contributor description contributor date
-          date date date type format identifier identifier language rights)
+        expected = %w[title creator contributor description contributor date
+                      date date date type format identifier identifier language rights]
         expect(elems.map(&:name)).to eq expected
       end
-
     end
 
     describe '#_choose_date' do
-      let(:elements) { [
+      let(:elements) do
+        [
           create_element('format', '125 pages'),
           create_element('date', '2013-07-10T17:10:21Z'),
           create_element('date', '2013-07-10T17:10:21Z'),
           create_element('date', '2013-04-03'),
           create_element('date', '2012-07-10')
         ]
-      }
-      let(:no_date_elements) { [
+      end
+      let(:no_date_elements) do
+        [
           create_element('format', '125 pages'),
           create_element('foo', 'bar')
         ]
-      }
-      let(:just_month_year) { [
+      end
+      let(:just_month_year) do
+        [
           create_element('format', '126 pages'),
           create_element('date', '2013-07-10T17:10:21Z'),
           create_element('date', '2011-06')
         ]
-      }
+      end
       it 'takes the year of the earliest date' do
         expect(subject.send(:choose_date, elements)).to eq 2012
       end
@@ -86,22 +88,28 @@ module Orangetheses
     end
 
     describe '#_choose_date_hash' do
-      let(:elements) { {
-        'dc.format' => ['125 pages'],
-        'dc.date' => ['2013-07-10T17:10:21Z'],
-        'dc.date.issued' => ['2013-07-10T17:10:21Z'],
-        'dc.date.created' => ['2013-04-03'],
-        'dc.date.availabile' => ['2012-07-10']
-      } }
-      let(:no_date_elements) { {
-        'dc.format' => ['125 pages'],
-        'foo' => ['bar']
-      } }
-      let(:just_month_year) { {
-        'dc.format' => ['126 pages'],
-        'dc.date' => ['2013-07-10T17:10:21Z'],
-        'dc.date.availabile' => ['2011-06']
-      } }
+      let(:elements) do
+        {
+          'dc.format' => ['125 pages'],
+          'dc.date' => ['2013-07-10T17:10:21Z'],
+          'dc.date.issued' => ['2013-07-10T17:10:21Z'],
+          'dc.date.created' => ['2013-04-03'],
+          'dc.date.availabile' => ['2012-07-10']
+        }
+      end
+      let(:no_date_elements) do
+        {
+          'dc.format' => ['125 pages'],
+          'foo' => ['bar']
+        }
+      end
+      let(:just_month_year) do
+        {
+          'dc.format' => ['126 pages'],
+          'dc.date' => ['2013-07-10T17:10:21Z'],
+          'dc.date.availabile' => ['2011-06']
+        }
+      end
       it 'takes the year of the earliest date' do
         expect(subject.send(:choose_date_hash, elements)).to eq 2012
       end
@@ -114,16 +122,18 @@ module Orangetheses
     end
 
     describe '#_title' do
-      let(:elements) { [
+      let(:elements) do
+        [
           create_element('title', 'Baz quux'),
           create_element('date', '2012-07-10')
         ]
-      }
-      let(:no_title_element) { [
+      end
+      let(:no_title_element) do
+        [
           create_element('format', '125 pages'),
           create_element('foo', 'bar')
         ]
-      }
+      end
       it 'gets the title if there is one' do
         expect(subject.send(:title, elements)).to eq 'Baz quux'
       end
@@ -133,17 +143,19 @@ module Orangetheses
     end
 
     describe '#_author_sort' do
-      let(:elements) { [
+      let(:elements) do
+        [
           create_element('creator', 'Beeblebrox, Zaphod'),
           create_element('creator', 'Prefect, Ford'),
           create_element('date', '2012-07-10')
         ]
-      }
-      let(:no_author_sort_element) { [
+      end
+      let(:no_author_sort_element) do
+        [
           create_element('baz', 'quux'),
           create_element('foo', 'bar')
         ]
-      }
+      end
       it 'gets exactly one author_sort if there is one' do
         expect(subject.send(:author_sort, elements)).to eq 'Beeblebrox, Zaphod'
       end
@@ -164,31 +176,34 @@ module Orangetheses
     end
 
     describe '#_ark' do
-      let(:elements_full) { [
+      let(:elements_full) do
+        [
           create_element('identifier', 'http://arks.princeton.edu/ark:/88435/dsp013t945q852'),
           create_element('identifier', '7412'),
           create_element('foo', 'bar')
         ]
-      }
-      let(:elements_rights) { [
+      end
+      let(:elements_rights) do
+        [
           create_element('identifier', 'http://arks.princeton.edu/ark:/88435/dsp013t945q852'),
           create_element('identifier', '7412'),
           create_element('rights', 'there are restrictions')
         ]
-      }
-      let(:no_ark) { [
+      end
+      let(:no_ark) do
+        [
           create_element('identifier', '7412'),
           create_element('foo', 'bar')
         ]
-      }
+      end
       it 'gets the ark with full text link display when no rights' do
-        ark = "http://arks.princeton.edu/ark:/88435/dsp013t945q852"
-        expected = %Q({"#{ark}":["#{dspace}","#{full_text}"]})
+        ark = 'http://arks.princeton.edu/ark:/88435/dsp013t945q852'
+        expected = %({"#{ark}":["#{dspace}","#{full_text}"]})
         expect(subject.send(:ark, elements_full)).to eq expected
       end
       it 'gets the ark with citation link display when rights' do
-        ark = "http://arks.princeton.edu/ark:/88435/dsp013t945q852"
-        expected = %Q({"#{ark}":["#{dspace}","#{citation}"]})
+        ark = 'http://arks.princeton.edu/ark:/88435/dsp013t945q852'
+        expected = %({"#{ark}":["#{dspace}","#{citation}"]})
         expect(subject.send(:ark, elements_rights)).to eq expected
       end
       it 'returns nil if there is not a ark' do
@@ -310,25 +325,24 @@ module Orangetheses
       end
     end
 
-
     describe '#_ark_hash' do
       let(:ark_doc_citation) { doc }
-      let(:ark_doc_full_text) {
+      let(:ark_doc_full_text) do
         doc.delete('dc.rights.accessRights')
         doc
-      }
-      let(:no_ark) {
+      end
+      let(:no_ark) do
         doc.delete('dc.identifier.uri')
         doc
-      }
+      end
       it 'gets the ark with citation link display when restrctions' do
         ark = ark_doc_citation['dc.identifier.uri'].first
-        expected = %Q({"#{ark}":["#{dspace}","#{citation}"]})
+        expected = %({"#{ark}":["#{dspace}","#{citation}"]})
         expect(subject.send(:ark_hash, ark_doc_citation)).to eq expected
       end
       it 'gets the ark with full text link display when no restrctions' do
         ark = ark_doc_full_text['dc.identifier.uri'].first
-        expected = %Q({"#{ark}":["#{dspace}","#{full_text}"]})
+        expected = %({"#{ark}":["#{dspace}","#{full_text}"]})
         expect(subject.send(:ark_hash, ark_doc_full_text)).to eq expected
       end
       it 'returns nil if there is not a ark' do
@@ -337,7 +351,8 @@ module Orangetheses
     end
 
     describe '#_map_non_special_to_solr' do
-      let(:elements) { [
+      let(:elements) do
+        [
           create_element('date', '2012-07-10'),
           create_element('description', 'Soon, I expect. Or later. One of those.'),
           create_element('creator', 'Oswald, Clara'),
@@ -345,7 +360,7 @@ module Orangetheses
           create_element('format', '125 Pages'),
           create_element('rights', 'Come on!')
         ]
-      }
+      end
       let(:h) { subject.send(:map_non_special_to_solr, elements) }
       it 'adds the expected keys' do
         expect(h).to include('description_display' => ['125 Pages'])
@@ -356,7 +371,7 @@ module Orangetheses
         expect(h).to include('author_s' => ['Oswald, Clara', 'Baker, Tom'])
       end
       it 'but leaves others out' do
-        expect(h).to_not have_key('date')
+        expect(h).not_to have_key('date')
       end
     end
 
@@ -379,7 +394,7 @@ module Orangetheses
         expect(h).to include('summary_note_display' => doc['dc.description.abstract'])
       end
       it 'but leaves others out' do
-        expect(h).to_not have_key('id')
+        expect(h).not_to have_key('id')
       end
     end
 
@@ -391,10 +406,10 @@ module Orangetheses
     end
 
     describe '#_title_sort' do
-      let(:with_punct) { [ create_element('title', '"Some quote" : Blah blah') ] }
-      let(:with_article) { [ create_element('title', 'A title : blah blah') ] }
-      let(:with_punct_and_article) { [ create_element('title', '"A quote" : blah blah') ] }
-      let(:not_an_article) { [ create_element('title', 'thesis') ] }
+      let(:with_punct) { [create_element('title', '"Some quote" : Blah blah')] }
+      let(:with_article) { [create_element('title', 'A title : blah blah')] }
+      let(:with_punct_and_article) { [create_element('title', '"A quote" : blah blah')] }
+      let(:not_an_article) { [create_element('title', 'thesis')] }
       it 'strips punctuation' do
         expected = 'somequoteblahblah'
         expect(subject.send(:title_sort, with_punct)).to eq expected
@@ -437,9 +452,9 @@ module Orangetheses
     end
 
     describe '#_class_year_fields' do
-      let(:class_year) { ["2014"] }
-      let(:doc_int) { { "pu.date.classyear" => class_year } }
-      let(:doc_no_int) { { "pu.date.classyear" => ["Undated"] } }
+      let(:class_year) { ['2014'] }
+      let(:doc_int) { { 'pu.date.classyear' => class_year } }
+      let(:doc_no_int) { { 'pu.date.classyear' => ['Undated'] } }
       let(:doc_no_field) { {} }
       it 'returns empty hash when no integer in classyear field' do
         expect(subject.send(:class_year_fields, doc_no_int)).to eq({})
@@ -469,10 +484,10 @@ module Orangetheses
           expect(subject.send(:holdings_access, doc_restrictions)['advanced_location_s']).to include('Mudd Manuscript Library')
         end
         it 'holdings include call number' do
-          expect(physical_holding['thesis'].has_key?('call_number')).to be true
+          expect(physical_holding['thesis'].key?('call_number')).to be true
         end
         it 'holdings include call number browse' do
-          expect(physical_holding['thesis'].has_key?('call_number_browse')).to be true
+          expect(physical_holding['thesis'].key?('call_number_browse')).to be true
         end
         it 'holdings dspace value is true' do
           expect(physical_holding['thesis']['dspace']).to be true
@@ -486,7 +501,7 @@ module Orangetheses
           expect(subject.send(:holdings_access, doc_embargo)['advanced_location_s']).to include('Mudd Manuscript Library')
         end
         it 'holdings include call number' do
-          expect(embargo_holding['thesis'].has_key?('call_number_browse')).to be true
+          expect(embargo_holding['thesis'].key?('call_number_browse')).to be true
         end
         it 'holdings dspace value is true' do
           expect(embargo_holding['thesis']['dspace']).to be false
@@ -501,10 +516,10 @@ module Orangetheses
           expect(subject.send(:holdings_access, doc_no_restrictions)['electronic_portfolio_s']).to include('thesis')
         end
         it 'holdings include call number' do
-          expect(online_holding['thesis'].has_key?('call_number')).to be true
+          expect(online_holding['thesis'].key?('call_number')).to be true
         end
         it 'holdings include call number browse' do
-          expect(online_holding['thesis'].has_key?('call_number_browse')).to be true
+          expect(online_holding['thesis'].key?('call_number_browse')).to be true
         end
       end
     end
@@ -519,11 +534,11 @@ module Orangetheses
       end
 
       it 'supports multiple language codes' do
-        expect(subject.send(:code_to_language, ['el', 'it'])).to include('Greek, Modern (1453-)', 'Italian')
+        expect(subject.send(:code_to_language, %w[el it])).to include('Greek, Modern (1453-)', 'Italian')
       end
 
       it 'dedups' do
-        expect(subject.send(:code_to_language, ['en_US', 'en'])).to eq ['English']
+        expect(subject.send(:code_to_language, %w[en_US en])).to eq ['English']
       end
     end
   end
