@@ -60,8 +60,36 @@ module Orangetheses
       'format' => 'Visual material'
     }.freeze
 
+    # @todo This needs to be refactored into a separate Class
+    def self.config_file
+      File.join(File.dirname(__FILE__), '..', '..', 'config', 'solr.yml')
+    end
+
+    def self.config_yaml
+      ERB.new(IO.read(config_file)).result(binding)
+    rescue StandardError, SyntaxError => error
+      raise("#{config_file} was found, but could not be parsed with ERB. \n#{error.inspect}")
+    end
+
+    def self.config_values
+      YAML.safe_load(config_yaml)
+    end
+
+    def self.env
+      ENV['ORANGETHESES_ENV'] || 'development'
+    end
+
+    def self.config
+      OpenStruct.new(solr: config_values[env])
+    end
+
+    def self.default_solr_url
+      config.solr["url"]
+    end
+
     def initialize(solr_server = nil)
-      solr_server = 'http://localhost:8888/solr/blacklight-core' if solr_server.nil?
+      solr_server ||= self.class.default_solr_url
+
       @tmpdir = Dir.mktmpdir
       @solr = RSolr.connect(url: solr_server, read_timeout: 120, open_timeout: 120)
       @logger = Logger.new(STDOUT)
@@ -260,26 +288,46 @@ module Orangetheses
     end
 
     def locations
-      @locations || get_locations
+      @locations ||= request_locations
     end
 
-    def get_locations
-      locations = Faraday.get('https://bibdata.princeton.edu/locations/holding_locations.json')
-      if locations.status == 200
+    def holding_locations_uri
+      'https://bibdata.princeton.edu/locations/holding_locations.json'
+    end
+
+    def request_locations
+      response = Faraday.get(holding_locations_uri)
+
+      if response.status == 200
         @locations = {}
-        JSON.parse(locations.body).each do |location|
-          @locations[location['code']] = location
+        JSON.parse(response.body).each do |location|
+          location_code = location['code']
+          @locations[location_code] = location unless location_code.nil?
         end
       end
+
       @locations
     end
 
+    def find_location(code:)
+      locations[code]
+    end
+
     def get_library(code)
-      locations[code]['library']['label']
+      location = find_location(code: code)
+      return if location.nil?
+
+      location_library = location['library']
+      return if location_library.nil?
+
+      location_library['label']
     end
 
     def location_full_display(code)
-      locations[code]['label'] == '' ? get_library(code) : get_library(code) + ' - ' + locations[code]['label']
+      location = find_location(code: code)
+      return if location.nil?
+
+      location['label'] == '' ? get_library(code) : get_library(code) + ' - ' + location['label']
     end
 
     def access_facet(location_code, links)

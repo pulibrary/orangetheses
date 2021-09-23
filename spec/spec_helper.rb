@@ -4,6 +4,7 @@ require 'bundler/setup'
 require 'orangetheses'
 require 'pry-byebug'
 require 'simplecov'
+require 'webmock/rspec'
 
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
@@ -27,6 +28,14 @@ end
 
 def fixture_path(filename)
   File.join(File.dirname(__FILE__), 'fixtures', filename)
+end
+
+def oai_record_fixture_path
+  File.join(File.dirname(__FILE__), 'fixtures', 'oai', 'record.xml')
+end
+
+def holding_locations_fixture_path
+  File.join(File.dirname(__FILE__), 'fixtures', 'bibdata', 'holding_locations.json')
 end
 
 Encoding.default_external = Encoding::UTF_8

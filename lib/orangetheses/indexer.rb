@@ -35,6 +35,7 @@ module Orangetheses
       'format' => 'Senior thesis'
     }.freeze
 
+    # @todo This needs to be refactored into a separate Class
     def self.config_file
       File.join(File.dirname(__FILE__), '..', '..', 'config', 'solr.yml')
     end
@@ -303,7 +304,10 @@ module Orangetheses
         @logger.info("No valid embargo date for #{doc['id']}")
         return false
       end
-      date > Time.zone.now
+
+      # rubocop:disable Rails/TimeZone
+      date > Time.now
+      # rubocop:enable Rails/TimeZone
     end
 
     def embargo(doc)

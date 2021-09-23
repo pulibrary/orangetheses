@@ -14,7 +14,6 @@ describe Orangetheses::Harvester do
   let(:indexer) do
     instance_double(Orangetheses::Indexer)
   end
-  let(:root_path) { File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..')) }
 
   before do
     allow(indexer).to receive(:index)
@@ -34,8 +33,7 @@ describe Orangetheses::Harvester do
 
   describe '#index_item' do
     let(:identifier) { 'oai:dataspace.princeton.edu:88435/dsp012z10wq21r' }
-    let(:record_fixture_path) { File.join(root_path, 'spec', 'fixtures', 'oai', 'record.xml') }
-    let(:record_fixture_file) { File.read(record_fixture_path) }
+    let(:record_fixture_file) { File.read(oai_record_fixture_path) }
     let(:record_document) { Nokogiri::XML.parse(record_fixture_file) }
     let(:metadata) { record_document.at_xpath('//oai:metadata', 'oai' => 'http://www.openarchives.org/OAI/2.0/') }
     let(:record) { instance_double(OAI::Record) }
@@ -64,7 +62,7 @@ describe Orangetheses::Harvester do
       subject { described_class.new.send(:client) }
 
       it 'get set for the client' do
-        expect(base.to_s).to eq PMH_SERVER
+        expect(base.to_s).to eq("https://dataspace.princeton.edu/oai/request")
       end
     end
 
