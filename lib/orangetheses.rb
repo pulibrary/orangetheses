@@ -1,11 +1,21 @@
+# frozen_string_literal: true
+
+require 'nokogiri'
+
+def config_path
+  File.expand_path(
+    File.join(
+      File.dirname(__FILE__), '..', 'config'
+    )
+  )
+end
+require config_path
+
 require 'orangetheses/version'
 
 module Orangetheses
-  #$test = true
   # OAI
   SET = 'com_88435_dsp019c67wm88m'
-  PMH_SERVER = 'https://dataspace.princeton.edu/oai/request'
-  PMH_SERVER = 'https://updatespace.princeton.edu/oai/request' if $test
   METADATA_PREFIX = 'oai_dc'
 
   # REST service

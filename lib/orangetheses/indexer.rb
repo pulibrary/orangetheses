@@ -1,44 +1,75 @@
+# frozen_string_literal: true
+
 require 'rsolr'
 require 'rexml/document'
 require 'chronic'
 require 'logger'
 require 'json'
 require 'iso-639'
+require 'yaml'
+require 'erb'
 
 module Orangetheses
   class Indexer
-
     SET = 'Princeton University Senior Theses'
 
     NON_SPECIAL_ELEMENT_MAPPING = {
-      'creator' => ['author_display', 'author_s'],
-      'contributor' => ['advisor_display', 'author_s'],
+      'creator' => %w[author_display author_s],
+      'contributor' => %w[advisor_display author_s],
       'format' => ['description_display'],
       'rights' => ['rights_reproductions_note_display'],
       'description' => ['summary_note_display']
-    }
+    }.freeze
 
     REST_NON_SPECIAL_ELEMENT_MAPPING = {
-      'dc.contributor.author' => ['author_display', 'author_s'],
-      'dc.contributor.advisor' => ['advisor_display', 'author_s'],
-      'dc.contributor' => ['contributor_display', 'author_s'],
-      'pu.department' => ['department_display', 'author_s'],
-      'pu.certificate' => ['certificate_display', 'author_s'],
+      'dc.contributor.author' => %w[author_display author_s],
+      'dc.contributor.advisor' => %w[advisor_display author_s],
+      'dc.contributor' => %w[contributor_display author_s],
+      'pu.department' => %w[department_display author_s],
+      'pu.certificate' => %w[certificate_display author_s],
       'dc.format.extent' => ['description_display'],
       'dc.description.abstract' => ['summary_note_display']
-    }
+    }.freeze
 
     HARD_CODED_TO_ADD = {
       'format' => 'Senior thesis'
-    }
+    }.freeze
 
-    def initialize(solr_server=nil)
-      solr_server = 'http://localhost:8983/solr' if solr_server.nil?
+    # @todo This needs to be refactored into a separate Class
+    def self.config_file
+      File.join(File.dirname(__FILE__), '..', '..', 'config', 'solr.yml')
+    end
+
+    def self.config_yaml
+      ERB.new(IO.read(config_file)).result(binding)
+    rescue StandardError, SyntaxError => error
+      raise("#{config_file} was found, but could not be parsed with ERB. \n#{error.inspect}")
+    end
+
+    def self.config_values
+      YAML.safe_load(config_yaml)
+    end
+
+    def self.env
+      ENV['ORANGETHESES_ENV'] || 'development'
+    end
+
+    def self.config
+      OpenStruct.new(solr: config_values[env])
+    end
+
+    def self.default_solr_url
+      config.solr["url"]
+    end
+
+    def initialize(solr_server = nil)
+      solr_server ||= self.class.default_solr_url
+
       @solr = RSolr.connect(url: solr_server)
       @logger = Logger.new(STDOUT)
       @logger.level = Logger::INFO
-      @logger.formatter = proc do |severity, datetime, progname, msg|
-        time = datetime.strftime("%H:%M:%S")
+      @logger.formatter = proc do |severity, datetime, _progname, msg|
+        time = datetime.strftime('%H:%M:%S')
         "[#{time}] #{severity}: #{msg}\n"
       end
     end
@@ -46,19 +77,16 @@ module Orangetheses
     # @param element  A REXML::Element (because this is what we get from the OAI gem)
     # @return  The HTTP response status from Solr (??)
     def index(metadata_element)
-      begin
-        dc_elements = pull_dc_elements(metadata_element)
-        doc = build_hash(dc_elements)
-        @logger.info("Adding #{doc['id']}")
-        @solr.add(doc, add_attributes: { commitWithin: 10 })
-      rescue NoMethodError => e
-        @logger.error(e.to_s)
-        @logger.error(metadata_element)
-      rescue Exception => e
-        @logger.error(e.to_s)
-        dc_elements.each { |element| @logger.error(element.to_s) }
-      end
-
+      dc_elements = pull_dc_elements(metadata_element)
+      doc = build_hash(dc_elements)
+      @logger.info("Adding #{doc['id']}")
+      @solr.add(doc, add_attributes: { commitWithin: 10 })
+    rescue NoMethodError => e
+      @logger.error(e.to_s)
+      @logger.error(metadata_element)
+    rescue Exception => e
+      @logger.error(e.to_s)
+      dc_elements.each { |element| @logger.error(element.to_s) }
     end
 
     def get_solr_doc(doc)
@@ -68,18 +96,15 @@ module Orangetheses
     # @param doc [Hash] Metadata hash with dc and pu terms
     # @return  The HTTP response status from Solr (??)
     def index_hash(doc)
-      begin
-        solr_doc = build_solr_hash(doc)
-        @logger.info("Adding #{solr_doc['id']}")
-        @solr.add(solr_doc, add_attributes: { commitWithin: 10 })
-      rescue NoMethodError => e
-        @logger.error(e.to_s)
-        @logger.error(doc.to_s)
-      rescue Exception => e
-        @logger.error(e.to_s)
-        @logger.error(doc.to_s)
-      end
-
+      solr_doc = build_solr_hash(doc)
+      @logger.info("Adding #{solr_doc['id']}")
+      @solr.add(solr_doc, add_attributes: { commitWithin: 10 })
+    rescue NoMethodError => e
+      @logger.error(e.to_s)
+      @logger.error(doc.to_s)
+    rescue Exception => e
+      @logger.error(e.to_s)
+      @logger.error(doc.to_s)
     end
 
     private
@@ -130,9 +155,7 @@ module Orangetheses
     def title_sort(dc_elements)
       titles = dc_elements.select { |e| e.name == 'title' }
       title = titles.empty? ? nil : titles.first.text
-      unless title.nil?
-        title.downcase.gsub(/[^\p{Alnum}\s]/, '').gsub(/^(a|an|the)\s/, '').gsub(/\s/,'')
-      end
+      title.downcase.gsub(/[^\p{Alnum}\s]/, '').gsub(/^(a|an|the)\s/, '').gsub(/\s/, '') unless title.nil?
     end
 
     def ark(dc_elements)
@@ -159,7 +182,7 @@ module Orangetheses
           'library' => 'Mudd Manuscript Library',
           'location_code' => 'mudd$stacks',
           'call_number' => call_number(doc['dc.identifier.other']),
-          'call_number_browse' =>call_number(doc['dc.identifier.other']),
+          'call_number_browse' => call_number(doc['dc.identifier.other']),
           'dspace' => accessible
         }
       }.to_json.to_s
@@ -169,12 +192,10 @@ module Orangetheses
       non_ark_ids = dc_elements.select do |e|
         e.name == 'identifier' && !e.text.start_with?('http://arks.princeton')
       end
-      unless non_ark_ids.empty?
-        return { 'Other identifier' => non_ark_ids.map(&:text) }.to_json.to_s
-      end
+      return { 'Other identifier' => non_ark_ids.map(&:text) }.to_json.to_s unless non_ark_ids.empty?
+
       nil
     end
-
 
     def id(dc_elements)
       arks = dc_elements.select do |e|
@@ -210,18 +231,16 @@ module Orangetheses
     end
 
     def choose_date_hash(doc)
-      dates = all_date_elements_hash(doc).map { |k,v| Chronic.parse(v.first) }.compact
+      dates = all_date_elements_hash(doc).map { |_k, v| Chronic.parse(v.first) }.compact
       dates.empty? ? nil : dates.min.year
     end
 
     def all_date_elements_hash(doc)
-      doc.select { |k,v| k[/dc\.date/] }
+      doc.select { |k, _v| k[/dc\.date/] }
     end
 
     def title_sort_hash(titles)
-      unless titles.nil?
-        titles.first.downcase.gsub(/[^\p{Alnum}\s]/, '').gsub(/^(a|an|the)\s/, '').gsub(/\s/,'')
-      end
+      titles.first.downcase.gsub(/[^\p{Alnum}\s]/, '').gsub(/^(a|an|the)\s/, '').gsub(/\s/, '') unless titles.nil?
     end
 
     # Take first title, strip out latex expressions when present to include along
@@ -253,38 +272,42 @@ module Orangetheses
 
     def dspace_display_text(dc_elements)
       text = [dataspace]
-      if dc_elements.select { |e| e.name == 'rights' }.empty?
-        text << full_text
-      else
-        text << citation
-      end
+      text << if dc_elements.select { |e| e.name == 'rights' }.empty?
+                full_text
+              else
+                citation
+              end
       text
     end
 
     def dspace_display_text_hash(doc)
       text = [dataspace]
-      if on_site_only?(doc)
-        text << citation
-      else
-        text << full_text
-      end
+      text << if on_site_only?(doc)
+                citation
+              else
+                full_text
+              end
       text
     end
 
     def on_site_only?(doc)
-      doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights') ||
-      embargo?(doc) || walkin?(doc)
+      doc.key?('pu.location') || doc.key?('dc.rights.accessRights') ||
+        embargo?(doc) || walkin?(doc)
     end
 
     def embargo?(doc)
       date = doc['pu.embargo.lift'] || doc['pu.embargo.terms']
       return false if date.nil?
+
       date = Chronic.parse(date.first)
       if date.nil?
         @logger.info("No valid embargo date for #{doc['id']}")
         return false
       end
+
+      # rubocop:disable Rails/TimeZone
       date > Time.now
+      # rubocop:enable Rails/TimeZone
     end
 
     def embargo(doc)
@@ -304,13 +327,11 @@ module Orangetheses
         date = embargo(doc)
         "This content is embargoed until #{date}. For more information contact the "\
         "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc['id']}\"> "\
-        "Mudd Manuscript Library</a>."
-      elsif doc.has_key?('pu.location') || doc.has_key?('dc.rights.accessRights')
+        'Mudd Manuscript Library</a>.'
+      elsif doc.key?('pu.location') || doc.key?('dc.rights.accessRights')
         [doc['pu.location'], doc['dc.rights.accessRights']].flatten.compact
       elsif walkin?(doc)
         walkin_text
-      else
-        nil
       end
     end
 
@@ -333,11 +354,11 @@ module Orangetheses
 
     # this is kind of a mess...
     def map_non_special_to_solr(dc_elements)
-      h = { }
+      h = {}
       NON_SPECIAL_ELEMENT_MAPPING.each do |element_name, fields|
         elements = dc_elements.select { |e| e.name == element_name }
         fields.each do |f|
-          if h.has_key?(f)
+          if h.key?(f)
             h[f].push(*elements.map(&:text))
           else
             h[f] = elements.map(&:text)
@@ -350,40 +371,39 @@ module Orangetheses
     # default English
     def code_to_language(codes)
       languages = []
-      unless codes.nil?
-        codes.each do |c|
-          code_lang = ISO_639.find(c[/^[^_]*/]) # en_US is not valid iso code
-          l = code_lang.nil? ? 'English' : code_lang.english_name
-          languages << l
-        end
+      # en_US is not valid iso code
+      codes&.each do |c|
+        code_lang = ISO_639.find(c[/^[^_]*/]) # en_US is not valid iso code
+        l = code_lang.nil? ? 'English' : code_lang.english_name
+        languages << l
       end
       languages.empty? ? 'English' : languages.uniq
     end
 
     def map_rest_non_special_to_solr(doc)
-      h = { }
+      h = {}
       REST_NON_SPECIAL_ELEMENT_MAPPING.each do |field_name, solr_fields|
-        if doc.has_key?(field_name)
-          solr_fields.each do |f|
-            val = []
-            val << h[f]
-            val << doc[field_name]
-            h[f] = val.flatten.compact
-            # Ruby might have a bug here
-            # if h.has_key?(f)
-            #   h[f].push(doc[field_name])
-            # else
-            #   h[f] = doc[field_name]
-            # end
-          end
+        next unless doc.key?(field_name)
+
+        solr_fields.each do |f|
+          val = []
+          val << h[f]
+          val << doc[field_name]
+          h[f] = val.flatten.compact
+          # Ruby might have a bug here
+          # if h.has_key?(f)
+          #   h[f].push(doc[field_name])
+          # else
+          #   h[f] = doc[field_name]
+          # end
         end
       end
       h
     end
 
     def class_year_fields(doc)
-      h = { }
-      if doc.has_key?('pu.date.classyear') && doc['pu.date.classyear'].first =~ /^\d+$/
+      h = {}
+      if doc.key?('pu.date.classyear') && doc['pu.date.classyear'].first =~ /^\d+$/
         h['class_year_s'] = doc['pu.date.classyear']
         h['pub_date_start_sort'] = doc['pu.date.classyear']
         h['pub_date_end_sort'] = doc['pu.date.classyear']

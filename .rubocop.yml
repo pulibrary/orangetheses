@@ -1,0 +1,26 @@
+require: rubocop-rspec
+inherit_gem:
+    bixby: bixby_default.yml
+AllCops:
+  DisplayCopNames: true
+  TargetRubyVersion: 2.6
+  Exclude:
+    - 'bin/*'
+    - 'tmp/**/*'
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/fetcher_spec.rb'
+    - 'spec/indexer_spec.rb'
+    - 'spec/visual_spec.rb'
+
+Metrics/MethodLength:
+  Exclude:
+    - 'lib/orangetheses/indexer.rb'
+    - 'lib/orangetheses/fetcher.rb'
+
+RSpec/NamedSubject:
+  Exclude:
+    - 'spec/fetcher_spec.rb'
+    - 'spec/indexer_spec.rb'
+    - 'spec/visual_spec.rb'

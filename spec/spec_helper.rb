@@ -1,10 +1,19 @@
-require "bundler/setup"
+# frozen_string_literal: true
+
+require 'bundler/setup'
 require 'orangetheses'
-require 'pry'
+require 'pry-byebug'
+require 'simplecov'
+require 'webmock/rspec'
 
-$LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
+$LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
-# $test = true
+SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new(
+  [
+    SimpleCov::Formatter::HTMLFormatter
+  ]
+)
+SimpleCov.start
 
 RSpec.configure do |config|
   config.color = true
@@ -19,6 +28,14 @@ end
 
 def fixture_path(filename)
   File.join(File.dirname(__FILE__), 'fixtures', filename)
+end
+
+def oai_record_fixture_path
+  File.join(File.dirname(__FILE__), 'fixtures', 'oai', 'record.xml')
+end
+
+def holding_locations_fixture_path
+  File.join(File.dirname(__FILE__), 'fixtures', 'bibdata', 'holding_locations.json')
 end
 
 Encoding.default_external = Encoding::UTF_8

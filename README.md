@@ -1,31 +1,67 @@
 # Orangetheses
-
 [![Circle CI](https://circleci.com/gh/pulibrary/orangetheses.svg?style=svg)](https://circleci.com/gh/pulibrary/orangetheses)
+[![Apache 2.0 License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=plastic)](./LICENSE)
 
-Lightweight indexer for PUL non-MARC records.
+Ruby Gem used for harvesting OAI-PMH records, transforming these into Solr Documents, and indexing the Documents.
 
 ## Installation
 
-    $ gem install orangetheses
+```
+$ gem install orangetheses
+```
 
 ## Usage
 
+### Indexing an individual OAI-PMH record from DataSpace
 ```
-# index PUL Senior theses fetched from DSpace REST Service
-rake orangetheses:index_all SOLR="http://127.0.0.1:8983/solr/blacklight-core"
+# oai:dataspace.princeton.edu:88435/dsp012z10wq21r is the OAI-PMH record identifier
+$ rake oai:index_record[oai:dataspace.princeton.edu:88435/dsp012z10wq21r] SOLR="http://127.0.0.1:8983/solr/blacklight-core"
+```
 
-# fetch theses from DSpace and store Solr JSON docs in a file
-rake orangetheses:cache_theses FILEPATH=/tmp/theses.json
+### Indexing the Senior Theses collection records from DataSpace
+```
+$ rake orangetheses:index_all SOLR="http://127.0.0.1:8983/solr/blacklight-core"
+```
 
-# index Visuals data
-rake orangetheses:index_visuals SOLR="http://127.0.0.1:8983/solr/blacklight-core"
+### Locally saving the Solr Documents for Senior Theses collection records from DataSpace
+```
+$ rake orangetheses:cache_theses FILEPATH=/tmp/theses.json
+```
+
+### Indexing the visual resource collection records from PUL websites
+```
+$ rake orangetheses:index_visuals SOLR="http://127.0.0.1:8983/solr/blacklight-core"
 ```
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+#### Setup
+* Install Lando from https://github.com/lando/lando/releases (at least 3.0.0-rrc.2)
+* See .tool-versions for language version requirements (ruby)
 
-To install this gem onto your local machine, run `bundle exec rake install`.
+```bash
+bundle install
+```
+(Remember you'll need to run the above commands on an ongoing basis as dependencies are updated.)
+
+#### Starting / stopping services
+We use lando to run services required for both test and development environments.
+
+Start and initialize Apache Solr with `rake servers:start`
+
+To stop Solr services: `rake servers:stop` or `lando stop`
+
+#### Run tests
+```bash
+$ bundle exec rspec
+```
+
+#### Installing the Gem
+To install this Gem onto your local machine, please run:
+
+```bash
+$ bundle exec rake install
+```
 
 ## Contributing
 
