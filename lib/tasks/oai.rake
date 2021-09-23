@@ -13,4 +13,15 @@ namespace :oai do
     harvester.index_item(indexer: indexer, identifier: identifier)
   end
   # rubocop:enable Rails/RakeEnvironment
+
+  desc 'Index all published Records within a Set using the OAI-PMH'
+  # rubocop:disable Rails/RakeEnvironment
+  task :index_set, [:set] do |_task, args|
+    harvester = Orangetheses::Harvester.new
+    indexer = Orangetheses::Indexer.new
+
+    set = args[:set]
+    harvester.index_set(indexer: indexer, set: set)
+  end
+  # rubocop:enable Rails/RakeEnvironment
 end
