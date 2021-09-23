@@ -54,6 +54,31 @@ describe Orangetheses::Harvester do
     end
   end
 
+  describe '#index_set' do
+    let(:set) { 'col_88435_dsp016q182k16g' }
+
+    let(:record_fixture_file) { File.read(oai_record_fixture_path) }
+    let(:record_document) { Nokogiri::XML.parse(record_fixture_file) }
+    let(:metadata) { record_document.at_xpath('//oai:metadata', 'oai' => 'http://www.openarchives.org/OAI/2.0/') }
+    let(:record) { instance_double(OAI::Record) }
+    let(:list_records_response) { instance_double(OAI::ListRecordsResponse) }
+    let(:client) { instance_double(OAI::Client) }
+
+    before do
+      allow(record).to receive(:metadata).and_return(metadata)
+      allow(list_records_response).to receive(:each).and_yield(record)
+      allow(client).to receive(:list_records).and_return(list_records_response)
+      allow(OAI::Client).to receive(:new).and_return(client)
+    end
+
+    it 'indexes a set of Items using the set identifier' do
+      harvester.index_set(indexer: indexer, set: set)
+
+      expect(client).to have_received(:list_records)
+      expect(indexer).to have_received(:index).with(metadata)
+    end
+  end
+
   describe '#_client' do
     let(:headers) { subject.instance_variable_get('@headers') }
     let(:base) { subject.instance_variable_get('@base') }

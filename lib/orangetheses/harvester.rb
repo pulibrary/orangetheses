@@ -74,6 +74,18 @@ module Orangetheses
       Rails.logger.warn("Error indexing the OAI-PMH record using #{identifier}: #{e}")
     end
 
+    # @param indexer []
+    # @param set []
+    def index_set(indexer:, set:)
+      list_response = client.list_records(set: set)
+
+      list_response.each do |record|
+        indexer.index(record.metadata)
+      end
+    rescue StandardError => error
+      logger.warn("Error indexing the OAI-PMH record using #{set}: #{error}")
+    end
+
     private
 
     def headers

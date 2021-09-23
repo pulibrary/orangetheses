@@ -18,6 +18,12 @@ $ gem install orangetheses
 $ rake oai:index_record[oai:dataspace.princeton.edu:88435/dsp012z10wq21r] SOLR="http://127.0.0.1:8983/solr/blacklight-core"
 ```
 
+### Indexing all OAI-PMH records from a set in DataSpace
+```
+# col_88435_dsp016q182k16g is the OAI-PMH set identifier
+$ rake oai:index_set[col_88435_dsp016q182k16g] SOLR="http://127.0.0.1:8983/solr/blacklight-core"
+```
+
 ### Indexing the Senior Theses collection records from DataSpace
 ```
 $ rake orangetheses:index_all SOLR="http://127.0.0.1:8983/solr/blacklight-core"
