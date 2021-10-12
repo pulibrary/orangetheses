@@ -5,18 +5,26 @@ require 'json'
 require 'tmpdir'
 require 'openssl'
 OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
+require 'logger'
 
 module Orangetheses
   class Fetcher
     # @param [Hash] opts  options to pass to the client
     # @option opts [String] :server ('https://dataspace.princeton.edu/rest/')
     # @option opts [String] :community ('267')
-    def initialize(server: SERVER_URL,
-                   community: COMMUNITY_HANDLE)
+    def initialize(server: SERVER_URL, community: COMMUNITY_HANDLE)
       # Cheaply write each keyword arg to an instance var with the same name:
       binding.local_variables.each do |p|
         instance_variable_set("@#{p}", eval(p.to_s))
       end
+    end
+
+    def logger
+      @logger ||= begin
+                    built = Logger.new(STDOUT)
+                    built.level = Logger::DEBUG
+                    built
+                  end
     end
 
     # @param id [String] thesis collection id
@@ -24,28 +32,29 @@ module Orangetheses
     def fetch_collection(id)
       theses = []
       offset = 0
-      count = REST_LIMIT
-      until count < REST_LIMIT
-        url = "#{@server}/collections/#{id}/items?limit=#{REST_LIMIT}&offset=#{offset}&expand=metadata"
-        puts url
-        resp = Faraday.get url
-        begin
-          items = JSON.parse(resp.body)
-        # retry if the rest service times out...
-        rescue JSON::ParserError => e
-          resp = Faraday.get url
-          items = JSON.parse(resp.body)
+      completed = false
+
+      until completed
+        url = build_collection_url(id: id, limit: REST_LIMIT, offset: offset)
+
+        logger.debug("Querying for the DSpace Collection at #{url}...")
+        response = api_client.get(url)
+        if response.status != 200
+          completed = true
+        else
+          items = JSON.parse(response.body)
+
+          theses << flatten_json(items)
+          offset += REST_LIMIT
         end
-        theses << flatten_json(items)
-        count = items.count
-        offset += REST_LIMIT
       end
+
       theses.flatten
     end
 
     def index_collection(indexer, id)
-      collection = fetch_collection(id)
-      collection.each do |record|
+      fetched = fetch_collection(id)
+      fetched.each do |record|
         indexer.index_hash(record)
       end
     end
@@ -69,6 +78,10 @@ module Orangetheses
 
     private
 
+    def build_collection_url(id:, limit:, offset:)
+      "#{@server}/collections/#{id}/items?limit=#{limit}&offset=#{offset}&expand=metadata"
+    end
+
     def flatten_json(items)
       items.collect do |i|
         h = {}
@@ -88,21 +101,46 @@ module Orangetheses
       end
     end
 
-    def community_id
-      @community_id ||= get_community_id
+    def api_client
+      Faraday
     end
 
-    def get_community_id
-      resp = Faraday.get "#{@server}/communities/"
-      json = JSON.parse(resp.body)
-      handle_id = json.select { |c| c['handle'] == @community }
-      handle_id.empty? ? '267' : handle_id.first['id'].to_s
+    def api_communities
+      @api_communities ||= begin
+                             response = api_client.get("#{@server}/communities/")
+                             response.body
+                           end
+    end
+
+    def self.api_root_community_id
+      '267'
+    end
+
+    def api_community
+      @api_community ||= begin
+                         api_communities.select { |c| c['handle'] == @community }
+                       end
+    end
+
+    def api_community_id
+      @api_community_id ||= api_community ? self.class.api_root_community_id : api_community['id']
+    end
+
+    def api_collections
+      @api_collections ||= begin
+                             response = api_client.get("#{@server}/communities/#{community_id}/collections")
+                             response.body
+                           end
+    end
+
+    def api_collections_json
+      @api_collections_json ||= begin
+                                  JSON.parse(api_collections)
+                                end
     end
 
     def collections
-      resp = Faraday.get "#{@server}/communities/#{community_id}/collections"
-      json = JSON.parse(resp.body)
-      json.map { |i| i['id'].to_s }
+      @collections ||= api_collections_json.map { |i| i['id'] }
     end
 
     def map_department(dept)
@@ -163,7 +201,7 @@ module Orangetheses
         'Spanish and Portuguese' => 'Princeton University. Department of Spanish and Portuguese Languages and Cultures',
         'Spanish and Portuguese Languages and Cultures' => 'Princeton University. Department of Spanish and Portuguese Languages and Cultures',
         'Statistics' => 'Princeton University. Department of Statistics',
-        'Woodrow Wilson School' => 'Woodrow Wilson School of Public and International Affairs'
+        'School of Public and International Affairs' => 'School of Public and International Affairs'
       }
     end
 
