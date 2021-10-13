@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['jpstroop@gmail.com']
 
   spec.summary       = 'Indexing routines for Princeton Theses.'
-  spec.description   = "Works with OIT's DSpace OAI-PMH service"
+  spec.description   = "Works with DSpace OAI-PMH service"
   spec.homepage      = 'https://github.com/pulibrary/orangetheses'
 
   # Prevent pushing this gem to RubyGems.org by setting 'allowed_push_host', or
@@ -26,7 +26,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'bixby'
   spec.add_development_dependency 'bundler', '>= 1.16.0', '< 3'
   spec.add_development_dependency 'pry-byebug'
-  spec.add_development_dependency 'rake', '~> 10.0'
+  spec.add_development_dependency 'rake', '>= 12.3.3'
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'simplecov'
   spec.add_development_dependency 'webmock'
