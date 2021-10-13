@@ -1,13 +1,12 @@
 # frozen_string_literal: true
 namespace :servers do
   desc "Start the Apache Solr container services using Lando."
-  task start: :environment do
+  task :start, :environment do
     system("lando start")
-    system("rake servers:initialize")
   end
 
   desc "Stop the Lando Apache Solr container services."
-  task stop: :environment do
+  task :stop, :environment do
     system("lando stop")
   end
 end

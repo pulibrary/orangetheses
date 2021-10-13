@@ -6,7 +6,7 @@ begin
   # This determines which services are running, as `lando info` does not exclude containers which are not active.
   lando_list = JSON.parse(`lando list --format json`, symbolize_names: true)
 rescue StandardError => error
-  logger.warn("Failed to find the `lando` containers in the environment (is Lando installed?)")
+  logger.warn("Failed to find the `lando` containers in the environment (is Lando installed?): #{error}")
   lando_list = []
 end
 

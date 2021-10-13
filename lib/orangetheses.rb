@@ -21,7 +21,6 @@ module Orangetheses
   # REST service
   COMMUNITY_HANDLE = '88435/dsp019c67wm88m'
   SERVER_URL = 'https://dataspace.princeton.edu/rest'
-  SERVER_URL = 'https://updatespace.princeton.edu/rest' if $test
   REST_LIMIT = 100
 
   autoload :Harvester, 'orangetheses/harvester'
