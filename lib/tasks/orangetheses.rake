@@ -12,7 +12,7 @@ namespace :orangetheses do
   end
 
   desc 'Exports all theses as solr json docs to FILEPATH'
-  task cache_theses: :environment do
+  task :cache_theses, :environment do |_task, _args|
     fetcher = Orangetheses::Fetcher.new
     indexer = Orangetheses::Indexer.new
 

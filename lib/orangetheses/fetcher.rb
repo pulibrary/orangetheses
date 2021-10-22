@@ -36,7 +36,6 @@ module Orangetheses
 
       until completed
         url = build_collection_url(id: id, limit: REST_LIMIT, offset: offset)
-
         logger.debug("Querying for the DSpace Collection at #{url}...")
         response = api_client.get(url)
         if response.status != 200
@@ -128,7 +127,7 @@ module Orangetheses
 
     def api_collections
       @api_collections ||= begin
-                             response = api_client.get("#{@server}/communities/#{community_id}/collections")
+                             response = api_client.get("#{@server}/communities/#{@community}/collections")
                              response.body
                            end
     end
