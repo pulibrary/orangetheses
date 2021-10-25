@@ -1,5 +1,6 @@
 # Orangetheses
 [![Circle CI](https://circleci.com/gh/pulibrary/orangetheses.svg?style=svg)](https://circleci.com/gh/pulibrary/orangetheses)
+[![Coverage Status](https://coveralls.io/repos/github/pulibrary/orangetheses/badge.svg?branch=main)](https://coveralls.io/github/pulibrary/orangetheses?branch=main)
 [![Apache 2.0 License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=plastic)](./LICENSE)
 
 Ruby Gem used for harvesting OAI-PMH records, transforming these into Solr Documents, and indexing the Documents.

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'bundler/setup'
+require 'coveralls'
 require 'orangetheses'
 require 'pry-byebug'
 require 'simplecov'
@@ -8,12 +9,12 @@ require 'webmock/rspec'
 
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
-SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new(
-  [
-    SimpleCov::Formatter::HTMLFormatter
-  ]
-)
-SimpleCov.start
+Coveralls.wear!
+
+SimpleCov.formatter = Coveralls::SimpleCov::Formatter
+SimpleCov.start do
+  add_filter 'spec'
+end
 
 RSpec.configure do |config|
   config.color = true
