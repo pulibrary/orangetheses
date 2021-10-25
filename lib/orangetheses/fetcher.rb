@@ -4,6 +4,7 @@ require 'faraday'
 require 'json'
 require 'tmpdir'
 require 'openssl'
+require 'byebug'
 OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
 require 'logger'
 
@@ -127,6 +128,7 @@ module Orangetheses
 
     def api_collections
       @api_collections ||= begin
+          byebug
                              response = api_client.get("#{@server}/communities/#{@community}/collections")
                              response.body
                            end
@@ -134,6 +136,7 @@ module Orangetheses
 
     def api_collections_json
       @api_collections_json ||= begin
+        byebug
                                   JSON.parse(api_collections)
                                 end
     end
