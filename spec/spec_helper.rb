@@ -42,4 +42,6 @@ end
 Encoding.default_external = Encoding::UTF_8
 Encoding.default_internal = Encoding::UTF_8
 
+# Leave this here to make it easier to disable WebMock when testing against
+# the live DSpace API
 # WebMock.enable_net_connect!

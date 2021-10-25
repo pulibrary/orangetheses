@@ -15,7 +15,7 @@ module Orangetheses
 
     # @param [Hash] opts  options to pass to the client
     # @option opts [String] :server ('https://dataspace.princeton.edu/rest/')
-    # @option opts [String] :community_handle ('88435/dsp019c67wm88m')
+    # @option opts [String] :community ('88435/dsp019c67wm88m')
     def initialize(server: SERVER_URL, community: COMMUNITY_HANDLE)
       @server = server
       @community = community
