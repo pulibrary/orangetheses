@@ -38,6 +38,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'iso-639'
   spec.add_dependency 'nokogiri'
   spec.add_dependency 'oai'
+  spec.add_dependency 'retriable'
   spec.add_dependency 'rsolr'
   spec.add_dependency 'yaml'
 end

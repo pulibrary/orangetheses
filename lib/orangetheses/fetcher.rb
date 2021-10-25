@@ -5,19 +5,20 @@ require 'json'
 require 'tmpdir'
 require 'openssl'
 require 'byebug'
+require 'retriable'
 OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
 require 'logger'
 
 module Orangetheses
   class Fetcher
+    attr_writer :logger
+
     # @param [Hash] opts  options to pass to the client
     # @option opts [String] :server ('https://dataspace.princeton.edu/rest/')
-    # @option opts [String] :community ('267')
+    # @option opts [String] :community_handle ('88435/dsp019c67wm88m')
     def initialize(server: SERVER_URL, community: COMMUNITY_HANDLE)
-      # Cheaply write each keyword arg to an instance var with the same name:
-      binding.local_variables.each do |p|
-        instance_variable_set("@#{p}", eval(p.to_s))
-      end
+      @server = server
+      @community = community
     end
 
     def logger
@@ -28,6 +29,16 @@ module Orangetheses
                   end
     end
 
+    ##
+    # Write to the log anytime an API call fails and we have to retry.
+    # See https://github.com/kamui/retriable#callbacks for more information.
+    def log_retries
+      proc do |exception, try, elapsed_time, next_interval|
+        logger.debug "#{exception.class}: '#{exception.message}' - #{try} tries in #{elapsed_time} seconds and #{next_interval} seconds until the next try."
+      end
+    end
+
+    ##
     # @param id [String] thesis collection id
     # @return [Array<Hash>] metadata hash for each record
     def fetch_collection(id)
@@ -38,17 +49,17 @@ module Orangetheses
       until completed
         url = build_collection_url(id: id, limit: REST_LIMIT, offset: offset)
         logger.debug("Querying for the DSpace Collection at #{url}...")
-        response = api_client.get(url)
-        if response.status != 200
-          completed = true
-        else
+        Retriable.retriable(on: JSON::ParserError, tries: Orangetheses::RETRY_LIMIT, on_retry: log_retries) do
+          response = api_client.get(url)
           items = JSON.parse(response.body)
-
-          theses << flatten_json(items)
-          offset += REST_LIMIT
+          if items.empty?
+            completed = true
+          else
+            theses << flatten_json(items)
+            offset += REST_LIMIT
+          end
         end
       end
-
       theses.flatten
     end
 
@@ -74,6 +85,13 @@ module Orangetheses
         end
       end
       records
+    end
+
+    ##
+    # The DSpace id of the community we're fetching content for.
+    # E.g., for handle '88435/dsp019c67wm88m', the DSpace id is 267
+    def api_community_id
+      @api_community_id ||= api_community['id'].to_s
     end
 
     private
@@ -112,31 +130,29 @@ module Orangetheses
                            end
     end
 
-    def self.api_root_community_id
-      '267'
-    end
-
+    ##
+    # Parse the JSON feed containing all of the communities, and return only the
+    # community that matches the handle.
+    # @return [JSON] a json representation of the DSpace community
     def api_community
       @api_community ||= begin
-                         api_communities.select { |c| c['handle'] == @community }
+                         JSON.parse(api_communities).find { |c| c['handle'] == @community }
                        end
     end
 
-    def api_community_id
-      @api_community_id ||= api_community ? self.class.api_root_community_id : api_community['id']
-    end
-
+    ##
+    # Get all of the collections for a given community
     def api_collections
       @api_collections ||= begin
-          byebug
-                             response = api_client.get("#{@server}/communities/#{@community}/collections")
+                             response = api_client.get("#{@server}/communities/#{api_community_id}/collections")
                              response.body
                            end
     end
 
+    ##
+    # All of the collections for a given community, parsed as JSON
     def api_collections_json
       @api_collections_json ||= begin
-        byebug
                                   JSON.parse(api_collections)
                                 end
     end
