@@ -3,17 +3,12 @@
 require 'bundler/setup'
 require 'orangetheses'
 require 'pry-byebug'
-require 'simplecov'
+require 'coveralls'
 require 'webmock/rspec'
 
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
-SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new(
-  [
-    SimpleCov::Formatter::HTMLFormatter
-  ]
-)
-SimpleCov.start
+Coveralls.wear!
 
 RSpec.configure do |config|
   config.color = true

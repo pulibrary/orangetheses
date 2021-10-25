@@ -80,11 +80,7 @@ jobs:
 
       - run:
           name: Execute the test suites using RSpec
-          command: bundle exec rspec
-
-      - store_artifacts:
-          path: ~/orangetheses/coverage
-          destination: coverage
+          command: COVERALLS_REPO_TOKEN=$COVERALLS_REPO_TOKEN bundle exec rspec
 
 workflows:
   version: 2
