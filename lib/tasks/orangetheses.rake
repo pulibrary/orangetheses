@@ -20,7 +20,6 @@ namespace :orangetheses do
     File.open(json_file_path, 'w') do |f|
       fetched = fetcher.cache_all_collections(indexer)
       fetched_json = fetched.to_json
-      byebug
       f.write(fetched_json.to_s)
     end
   end
