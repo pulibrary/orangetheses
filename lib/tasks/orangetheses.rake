@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'orangetheses'
-require 'byebug'
 
 namespace :orangetheses do
   desc 'Index all the metadata using OAI at SOLR=http://...'

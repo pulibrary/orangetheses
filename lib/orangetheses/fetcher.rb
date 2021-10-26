@@ -4,10 +4,11 @@ require 'faraday'
 require 'json'
 require 'tmpdir'
 require 'openssl'
-require 'byebug'
 require 'retriable'
-OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
 require 'logger'
+
+# Do not fail if SSL negotiation with DSpace isn't working
+OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
 
 module Orangetheses
   class Fetcher
