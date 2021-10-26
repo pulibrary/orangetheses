@@ -12,14 +12,13 @@ namespace :orangetheses do
   end
 
   desc 'Exports all theses as solr json docs to FILEPATH'
-  task cache_theses: :environment do
+  task :cache_theses, :environment do |_task, _args|
     fetcher = Orangetheses::Fetcher.new
     indexer = Orangetheses::Indexer.new
 
     File.open(json_file_path, 'w') do |f|
       fetched = fetcher.cache_all_collections(indexer)
       fetched_json = fetched.to_json
-
       f.write(fetched_json.to_s)
     end
   end
