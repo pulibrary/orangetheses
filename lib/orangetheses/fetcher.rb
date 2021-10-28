@@ -29,6 +29,12 @@ module Orangetheses
                     built
                   end
     end
+    
+    ##
+    # Where files get cached for later indexing
+    def json_file_path
+      @json_file_path ||= ENV['FILEPATH'] || '/tmp/theses.json'
+    end
 
     ##
     # Write to the log anytime an API call fails and we have to retry.
@@ -77,15 +83,49 @@ module Orangetheses
       end
     end
 
+    ##
+    # Cache all collections
     def cache_all_collections(indexer)
       records = []
-      collections.each do |c|
-        collection = fetch_collection(c)
-        collection.each do |record|
-          records << indexer.get_solr_doc(record)
-        end
+      collections.each do |collection_id|
+        records.append(cache_collection(indexer, collection_id))
+      end
+      records.flatten
+    end
+
+    ##
+    # Cache a single collection
+    def cache_collection(indexer, collection_id)
+      records = []
+      collection = fetch_collection(collection_id)
+      collection.each do |record|
+        records << indexer.get_solr_doc(record)
       end
       records
+    end
+    
+    ##
+    # Get a json representation of a single collection and write it as JSON to
+    # a cache file.
+    def self.write_collection_to_cache(collection_id)
+      indexer = Indexer.new
+      fetcher = Fetcher.new
+      File.open(fetcher.json_file_path, 'w') do |f|
+        fetched = fetcher.cache_collection(indexer, collection_id)
+        f.puts JSON.pretty_generate(fetched)
+      end
+    end
+    
+    ##
+    # Get a json representation of all thesis collections and write it as JSON to
+    # a cache file.
+    def self.write_all_collections_to_cache
+      indexer = Indexer.new
+      fetcher = Fetcher.new
+      File.open(fetcher.json_file_path, 'w') do |f|
+        fetched = fetcher.cache_all_collections(indexer)
+        f.puts JSON.pretty_generate(fetched)
+      end
     end
 
     ##

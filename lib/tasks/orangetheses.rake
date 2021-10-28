@@ -12,15 +12,14 @@ namespace :orangetheses do
   end
 
   desc 'Exports all theses as solr json docs to FILEPATH'
-  task :cache_theses, :environment do |_task, _args|
-    fetcher = Orangetheses::Fetcher.new
-    indexer = Orangetheses::Indexer.new
-
-    File.open(json_file_path, 'w') do |f|
-      fetched = fetcher.cache_all_collections(indexer)
-      fetched_json = fetched.to_json
-      f.write(fetched_json.to_s)
-    end
+  task :cache_theses do |_task, _args|
+    Orangetheses::Fetcher.write_all_collections_to_cache
+  end
+  
+  desc 'Exports a specific collection as solr json docs to FILEPATH'
+  task :cache_collection, [:collection_id] do |_task, args|
+    collection_id = args[:collection_id]
+    Orangetheses::Fetcher.write_collection_to_cache(collection_id)
   end
 
   desc 'Index all from REST service at SOLR=http://...'
@@ -49,10 +48,6 @@ namespace :orangetheses do
   end
 
   private
-
-  def json_file_path
-    @json_file_path ||= ENV['FILEPATH'] || '/tmp/theses.json'
-  end
 
   def solr_uri
     ENV['SOLR'] || Orangetheses::Indexer.default_solr_url
