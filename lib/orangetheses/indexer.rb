@@ -221,7 +221,8 @@ module Orangetheses
         'restrictions_note_display' => restrictions_display_text(doc),
         'call_number_display' => call_number(doc['dc.identifier.other']),
         'call_number_browse_s' => call_number(doc['dc.identifier.other']),
-        'language_facet' => code_to_language(doc['dc.language.iso'])
+        'language_facet' => code_to_language(doc['dc.language.iso']),
+        'language_name_display' => code_to_language(doc['dc.language.iso'])
       }
       h.merge!(map_rest_non_special_to_solr(doc))
       h.merge!(holdings_access(doc))
