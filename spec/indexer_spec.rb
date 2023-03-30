@@ -541,5 +541,12 @@ module Orangetheses
         expect(subject.send(:code_to_language, %w[en_US en])).to eq ['English']
       end
     end
+
+    describe '#get_solr_doc' do
+      it 'includes languages in the language_facet and language_name_display fields' do
+        expect(subject.get_solr_doc(doc)['language_facet']).to eq ['English']
+        expect(subject.get_solr_doc(doc)['language_name_display']).to eq ['English']
+      end
+    end
   end
 end
