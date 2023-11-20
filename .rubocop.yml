@@ -1,26 +1,106 @@
+---
 require: rubocop-rspec
-inherit_gem:
-    bixby: bixby_default.yml
+
 AllCops:
   DisplayCopNames: true
-  TargetRubyVersion: 2.6
+  TargetRubyVersion: 3.1
   Exclude:
     - 'bin/*'
     - 'tmp/**/*'
 
+Layout/LineLength:
+  Exclude:
+    - 'lib/orangetheses/fetcher.rb'
+    - 'spec/lib/orangetheses/fetcher_api_spec.rb'
+    - 'spec/lib/orangetheses/visual_spec.rb'
+
+Metrics/AbcSize:
+  Exclude:
+    - 'lib/orangetheses/fetcher.rb'
+    - 'lib/orangetheses/indexer.rb'
+    - 'lib/orangetheses/visual.rb'
+
 Metrics/BlockLength:
   Exclude:
+    - 'lib/orangetheses/visual.rb'
+    - 'lib/tasks/orangetheses.rake'
     - 'spec/fetcher_spec.rb'
     - 'spec/indexer_spec.rb'
     - 'spec/visual_spec.rb'
+
+Metrics/ClassLength:
+  Exclude:
+    - 'lib/orangetheses.rb'
+    - 'lib/orangetheses/fetcher.rb'
+    - 'lib/orangetheses/indexer.rb'
+    - 'lib/orangetheses/visual.rb'
+
+Metrics/CyclomaticComplexity:
+  Exclude:
+    - 'lib/orangetheses/visual.rb'
 
 Metrics/MethodLength:
   Exclude:
     - 'lib/orangetheses/indexer.rb'
     - 'lib/orangetheses/fetcher.rb'
+    - 'lib/orangetheses/harvester.rb'
+    - 'lib/orangetheses/visual.rb'
+    - 'spec/indexer_spec.rb'
+
+Metrics/ModuleLength:
+  Exclude:
+    - 'spec/indexer_spec.rb'
+
+Metrics/PerceivedComplexity:
+  Exclude:
+    - 'lib/orangetheses/visual.rb'
+
+RSpec/ContextWording:
+  Exclude:
+    - 'spec/lib/orangetheses/fetcher_api_spec.rb'
+
+RSpec/ExampleLength:
+  Exclude:
+    - 'spec/indexer_spec.rb'
+    - 'spec/lib/orangetheses/visual_spec.rb'
+
+RSpec/MultipleExpectations:
+  Exclude:
+    - 'spec/indexer_spec.rb'
+    - 'spec/lib/orangetheses/fetcher_api_spec.rb'
+    - 'spec/lib/orangetheses/fetcher_spec.rb'
+    - 'spec/lib/orangetheses/visual_spec.rb'
+
+RSpec/MultipleMemoizedHelpers:
+  Exclude:
+    - 'spec/indexer_spec.rb'
+    - 'spec/lib/orangetheses/harvester_spec.rb'
+    - 'spec/lib/orangetheses/visual_spec.rb'
+    - 'spec/lib/orangetheses/fetcher_api_spec.rb'
 
 RSpec/NamedSubject:
   Exclude:
-    - 'spec/fetcher_spec.rb'
     - 'spec/indexer_spec.rb'
-    - 'spec/visual_spec.rb'
+    - 'spec/lib/orangetheses/fetcher_spec.rb'
+    - 'spec/lib/orangetheses/indexer_spec.rb'
+    - 'spec/lib/orangetheses/visual_spec.rb'
+
+RSpec/RepeatedDescription:
+  Exclude:
+    - 'spec/indexer_spec.rb'
+    - 'spec/lib/orangetheses/fetcher_spec.rb'
+
+RSpec/SubjectStub:
+  Exclude:
+    - 'spec/lib/orangetheses/visual_spec.rb'
+
+Style/Documentation:
+  Exclude:
+    - 'lib/orangetheses.rb'
+    - 'lib/orangetheses/fetcher.rb'
+    - 'lib/orangetheses/harvester.rb'
+    - 'lib/orangetheses/indexer.rb'
+    - 'lib/orangetheses/railtie.rb'
+    - 'lib/orangetheses/visual.rb'
+    - 'spec/indexer_spec.rb'
+    - 'spec/lib/orangetheses/fetcher_spec.rb'

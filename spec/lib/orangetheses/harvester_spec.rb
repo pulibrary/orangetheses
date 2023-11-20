@@ -5,7 +5,7 @@ require 'spec_helper'
 describe Orangetheses::Harvester do
   subject(:harvester) do
     described_class.new(
-      dir: dir
+      dir:
     )
   end
 
@@ -48,7 +48,7 @@ describe Orangetheses::Harvester do
     end
 
     it 'indexes an Item by record identifier' do
-      harvester.index_item(indexer: indexer, identifier: identifier)
+      harvester.index_item(indexer:, identifier:)
 
       expect(indexer).to have_received(:index).with(metadata)
     end
@@ -62,7 +62,7 @@ describe Orangetheses::Harvester do
       subject { described_class.new.send(:client) }
 
       it 'get set for the client' do
-        expect(base.to_s).to eq("https://dataspace.princeton.edu/oai/request")
+        expect(base.to_s).to eq('https://dataspace.princeton.edu/oai/request')
       end
     end
 

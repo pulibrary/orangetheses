@@ -1,9 +1,10 @@
 # frozen_string_literal: true
+
 # Define and require global methods and variables
 require 'logger'
 
 def logger
-  @logger ||= Logger.new(STDOUT)
+  @logger ||= Logger.new($stdout)
 end
 
 def test?

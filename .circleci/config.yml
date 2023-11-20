@@ -1,10 +1,11 @@
-version: 2
+---
+version: 2.1
 jobs:
   build:
     working_directory: ~/orangetheses
 
     docker:
-      - image: circleci/ruby:2.7.4-node-browsers
+      - image: cimg/ruby:3.1-browsers
         environment:
           RAILS_ENV: test
 
@@ -29,7 +30,7 @@ jobs:
     working_directory: ~/orangetheses
 
     docker:
-      - image: circleci/ruby:2.7.4-node-browsers
+      - image: cimg/ruby:3.1-browsers
         environment:
           RAILS_ENV: test
 
@@ -58,7 +59,7 @@ jobs:
     working_directory: ~/orangetheses
 
     docker:
-      - image: circleci/ruby:2.7.4-node-browsers
+      - image: cimg/ruby:3.1-browsers
         environment:
           RAILS_ENV: test
 

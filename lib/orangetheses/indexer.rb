@@ -42,8 +42,8 @@ module Orangetheses
 
     def self.config_yaml
       ERB.new(IO.read(config_file)).result(binding)
-    rescue StandardError, SyntaxError => error
-      raise("#{config_file} was found, but could not be parsed with ERB. \n#{error.inspect}")
+    rescue StandardError, SyntaxError => e
+      raise("#{config_file} was found, but could not be parsed with ERB. \n#{e.inspect}")
     end
 
     def self.config_values
@@ -59,14 +59,14 @@ module Orangetheses
     end
 
     def self.default_solr_url
-      config.solr["url"]
+      config.solr['url']
     end
 
     def initialize(solr_server = nil)
       solr_server ||= self.class.default_solr_url
 
       @solr = RSolr.connect(url: solr_server)
-      @logger = Logger.new(STDOUT)
+      @logger = Logger.new($stdout)
       @logger.level = Logger::INFO
       @logger.formatter = proc do |severity, datetime, _progname, msg|
         time = datetime.strftime('%H:%M:%S')
@@ -84,7 +84,7 @@ module Orangetheses
     rescue NoMethodError => e
       @logger.error(e.to_s)
       @logger.error(metadata_element)
-    rescue Exception => e
+    rescue StandardError => e
       @logger.error(e.to_s)
       dc_elements.each { |element| @logger.error(element.to_s) }
     end
@@ -102,7 +102,7 @@ module Orangetheses
     rescue NoMethodError => e
       @logger.error(e.to_s)
       @logger.error(doc.to_s)
-    rescue Exception => e
+    rescue StandardError => e
       @logger.error(e.to_s)
       @logger.error(doc.to_s)
     end
@@ -249,13 +249,13 @@ module Orangetheses
     # is pasted directly into the search box and when sub/superscripts are placed
     # adjacent to regular characters
     def title_search_hash(titles)
-      unless titles.nil?
-        title = titles.first
-        title.scan(/\\\(.*?\\\)/).each do |latex|
-          title = title.gsub(latex, latex.gsub(/[^\p{Alnum}]/, ''))
-        end
-        title == titles.first ? title : [titles.first, title]
+      return if titles.nil?
+
+      title = titles.first
+      title.scan(/\\\(.*?\\\)/).each do |latex|
+        title = title.gsub(latex, latex.gsub(/[^\p{Alnum}]/, ''))
       end
+      title == titles.first ? title : [titles.first, title]
     end
 
     def ark_hash(doc)
@@ -268,7 +268,7 @@ module Orangetheses
     end
 
     def first_or_nil(field)
-      field.nil? ? nil : field.first
+      field&.first
     end
 
     def dspace_display_text(dc_elements)
@@ -306,9 +306,7 @@ module Orangetheses
         return false
       end
 
-      # rubocop:disable Rails/TimeZone
       date > Time.now
-      # rubocop:enable Rails/TimeZone
     end
 
     def embargo(doc)

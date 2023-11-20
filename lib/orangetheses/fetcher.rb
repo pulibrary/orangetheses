@@ -24,12 +24,12 @@ module Orangetheses
 
     def logger
       @logger ||= begin
-                    built = Logger.new(STDOUT)
-                    built.level = Logger::DEBUG
-                    built
-                  end
+        built = Logger.new($stdout)
+        built.level = Logger::DEBUG
+        built
+      end
     end
-    
+
     ##
     # Where files get cached for later indexing
     def json_file_path
@@ -54,7 +54,7 @@ module Orangetheses
       completed = false
 
       until completed
-        url = build_collection_url(id: id, limit: REST_LIMIT, offset: offset)
+        url = build_collection_url(id:, limit: REST_LIMIT, offset:)
         logger.debug("Querying for the DSpace Collection at #{url}...")
         Retriable.retriable(on: JSON::ParserError, tries: Orangetheses::RETRY_LIMIT, on_retry: log_retries) do
           response = api_client.get(url)
@@ -103,7 +103,7 @@ module Orangetheses
       end
       records
     end
-    
+
     ##
     # Get a json representation of a single collection and write it as JSON to
     # a cache file.
@@ -115,7 +115,7 @@ module Orangetheses
         f.puts JSON.pretty_generate(fetched)
       end
     end
-    
+
     ##
     # Get a json representation of all thesis collections and write it as JSON to
     # a cache file.
@@ -166,9 +166,9 @@ module Orangetheses
 
     def api_communities
       @api_communities ||= begin
-                             response = api_client.get("#{@server}/communities/")
-                             response.body
-                           end
+        response = api_client.get("#{@server}/communities/")
+        response.body
+      end
     end
 
     ##
@@ -176,26 +176,22 @@ module Orangetheses
     # community that matches the handle.
     # @return [JSON] a json representation of the DSpace community
     def api_community
-      @api_community ||= begin
-                         JSON.parse(api_communities).find { |c| c['handle'] == @community }
-                       end
+      @api_community ||= JSON.parse(api_communities).find { |c| c['handle'] == @community }
     end
 
     ##
     # Get all of the collections for a given community
     def api_collections
       @api_collections ||= begin
-                             response = api_client.get("#{@server}/communities/#{api_community_id}/collections")
-                             response.body
-                           end
+        response = api_client.get("#{@server}/communities/#{api_community_id}/collections")
+        response.body
+      end
     end
 
     ##
     # All of the collections for a given community, parsed as JSON
     def api_collections_json
-      @api_collections_json ||= begin
-                                  JSON.parse(api_collections)
-                                end
+      @api_collections_json ||= JSON.parse(api_collections)
     end
 
     def collections

@@ -5,8 +5,8 @@ require 'json'
 begin
   # This determines which services are running, as `lando info` does not exclude containers which are not active.
   lando_list = JSON.parse(`lando list --format json`, symbolize_names: true)
-rescue StandardError => error
-  logger.warn("Failed to find the `lando` containers in the environment (is Lando installed?): #{error}")
+rescue StandardError => e
+  logger.warn("Failed to find the `lando` containers in the environment (is Lando installed?): #{e}")
   lando_list = []
 end
 
@@ -18,11 +18,12 @@ if !lando_list.empty? && (test? || development?)
         ENV["lando_#{service[:service]}_conn_#{key}"] = value
       end
       next unless service[:creds]
+
       service[:creds].each do |key, value|
         ENV["lando_#{service[:service]}_creds_#{key}"] = value
       end
     end
-  rescue StandardError => error
-    logger.warn("Failed to start the container services using Lando: #{error}")
+  rescue StandardError => e
+    logger.warn("Failed to start the container services using Lando: #{e}")
   end
 end
