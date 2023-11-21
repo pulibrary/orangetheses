@@ -46,10 +46,14 @@ describe Orangetheses::Fetcher do
 
     it 'exports theses as json' do
       fetched = fetcher.cache_all_collections(indexer)
-      fetched_json = fetched.to_json
-      parsed_response = JSON.parse(fetched_json)
-      expect(parsed_response.first['id']).to eq 'dsp0141687h67f'
-      expect(parsed_response.first['title_display']).to eq 'Calibration of the Princeton University Subsonic Instructional Wind Tunnel'
+      expect(fetched).to be_an(Array)
+      expect(fetched.length).to eq(1)
+      document = fetched.first
+      expect(document).to be_a(Orangetheses::DataspaceDocument)
+      solr_document = document.to_solr
+      expect(solr_document).to be_a(Hash)
+      expect(solr_document).to include('id' => 'dsp0141687h67f')
+      expect(solr_document).to include('title_display' => 'Calibration of the Princeton University Subsonic Instructional Wind Tunnel')
     end
 
     it 'knows where to write cached files' do
@@ -60,8 +64,15 @@ describe Orangetheses::Fetcher do
       expect(File.exist?(cache)).to eq false
       described_class.write_collection_to_cache('361')
       expect(File.exist?(cache)).to eq true
-      cache_export = JSON.parse(File.read(cache))
-      expect(cache_export.first['id']).to eq 'dsp0141687h67f'
+      cached_file = File.read(cache)
+      expect(cached_file).to be_a(String)
+      expect(cached_file).not_to be_empty
+      cache_exports = JSON.parse(cached_file)
+      expect(cache_exports).to be_an(Array)
+      expect(cache_exports.length).to eq(1)
+      cache_export = cache_exports.first
+      expect(cache_export).to be_a(Hash)
+      expect(cache_export).to include('id' => 'dsp0141687h67f')
     end
 
     it 'writes all collections to a cache file' do

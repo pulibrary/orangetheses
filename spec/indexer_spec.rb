@@ -265,89 +265,112 @@ module Orangetheses
     end
 
     describe '#_restrictions_display_text' do
-      let(:doc_no_embargo) { {} }
-      let(:doc_walkin_restriction_note) do
-        { 'id' => '123', 'pu.location' => ['restriction'], 'pu.mudd.walkin' => ['yes'] }
-      end
-      let(:doc_no_valid_date) { { 'id' => '123', 'pu.embargo.lift' => ['never'] } }
-      let(:doc_lift_date) { { 'id' => '123456', 'pu.embargo.lift' => ['2100-07-01'] } }
-      let(:doc_lift_date_past) { { 'id' => '123456', 'pu.embargo.lift' => ['2010-07-01'] } }
-      let(:doc_past_embargo_walkin) do
-        { 'id' => '123456', 'pu.embargo.lift' => ['2010-07-01'], 'pu.mudd.walkin' => ['yes'] }
-      end
+      let(:indexer) { described_class.new }
+      let(:solr_document) { indexer.build_solr_document(**attrs) }
+      let(:values) { solr_document.to_solr }
 
-      it 'returns nil for doc without embargo field' do
-        expect(subject.send(:restrictions_display_text, doc_no_embargo)).to be nil
-      end
+      context 'when there is no embargo field' do
+        let(:attrs) do
+          {
+            'id' => '123456'
+          }
+        end
 
-      it 'returns restrction note for embargoed doc with invalid date' do
-        expect(subject.send(:restrictions_display_text, doc_no_valid_date)).to be nil
-      end
-
-      it 'returns valid formatted embargo date in restriction note' do
-        expect(subject.send(:restrictions_display_text, doc_lift_date_past)).to be nil
+        it 'returns nil for doc without embargo field' do
+          expect(solr_document).to be_a(DataspaceDocument)
+          expect(values).to be_a(Hash)
+          expect(values).to include('restrictions_note_display')
+          expect(values['restrictions_note_display']).to be nil
+        end
       end
 
-      it 'returns walk-in access note for lifted embargoes with walk-in property' do
-        expect(subject.send(:restrictions_display_text, doc_past_embargo_walkin)).to include('Walk-in Access.')
-      end
+      context 'when the resource is under embargo' do
+        let(:attrs) do
+          {
+            'id' => '123456',
+            'pu.embargo.lift' => ['2100-07-01']
+          }
+        end
 
-      it 'returns valid formatted embargo date in restriction note' do
-        expect(subject.send(:restrictions_display_text, doc_lift_date)).to include('July 1, 2100')
-      end
+        it 'returns valid formatted embargo date in restriction note' do
+          expect(solr_document).to be_a(DataspaceDocument)
+          expect(values).to be_a(Hash)
+          expect(values).to include('restrictions_note_display')
+          expect(values['restrictions_note_display']).to include('July 1, 2100')
+        end
 
-      it 'restriction note email subject includes embargoed doc id' do
-        expect(subject.send(:restrictions_display_text, doc_lift_date)).to include('123456')
-      end
+        it 'restriction note email subject includes embargoed doc id' do
+          expect(solr_document).to be_a(DataspaceDocument)
+          expect(values).to be_a(Hash)
+          expect(values).to include('restrictions_note_display')
+          expect(values['restrictions_note_display']).to include('123456')
+        end
 
-      it 'display specific restriction note instead when present when doc is walk-in' do
-        expect(subject.send(:restrictions_display_text, doc_walkin_restriction_note)).to eq ['restriction']
-      end
-    end
+        context 'when the access is restricted to walk-in patrons' do
+          let(:attrs) do
+            {
+              'id' => '123456',
+              'pu.embargo.lift' => ['2010-07-01'],
+              'pu.mudd.walkin' => ['yes']
+            }
+          end
 
-    describe '#_embargo' do
-      let(:doc_no_embargo) { {} }
-      let(:doc_no_valid_date) { { 'pu.embargo.lift' => ['never'] } }
-      let(:doc_lift_date) { { 'pu.embargo.lift' => ['2017-07-01'] } }
-      let(:doc_terms_date) { { 'pu.embargo.terms' => ['2100-01-01'] } }
+          it 'returns walk-in access note for lifted embargoes with walk-in property' do
+            expect(solr_document).to be_a(DataspaceDocument)
+            expect(values).to be_a(Hash)
+            expect(values).to include('restrictions_note_display')
+            expect(values['restrictions_note_display']).to include('Walk-in Access.')
+          end
+        end
 
-      it 'returns nil for doc without embargo field' do
-        expect(subject.send(:embargo, doc_no_embargo)).to be nil
-      end
+        context 'when there is an invalid embargo date' do
+          let(:attrs) do
+            {
+              'id' => '123',
+              'pu.embargo.lift' => ['never']
+            }
+          end
 
-      it 'returns nil for doc with invalid date' do
-        expect(subject.send(:embargo, doc_no_valid_date)).to be nil
-      end
+          it 'returns nil when the embargo date is invalid' do
+            expect(solr_document).to be_a(DataspaceDocument)
+            expect(values).to be_a(Hash)
+            expect(values).to include('restrictions_note_display')
+            expect(values['restrictions_note_display']).to be nil
+          end
+        end
 
-      it 'returns formatted embargo date' do
-        expect(subject.send(:embargo, doc_lift_date)).to eq('July 1, 2017')
-      end
+        context 'when the embargo date has passed' do
+          let(:attrs) do
+            {
+              'id' => '123456',
+              'pu.embargo.lift' => ['2010-07-01']
+            }
+          end
 
-      it 'picks up embargo terms value when lift value not present' do
-        expect(subject.send(:embargo, doc_terms_date)).to eq('January 1, 2100')
-      end
-    end
+          it 'returns valid formatted embargo date in restriction note' do
+            expect(solr_document).to be_a(DataspaceDocument)
+            expect(values).to be_a(Hash)
+            expect(values).to include('restrictions_note_display')
+            expect(values['restrictions_note_display']).to be nil
+          end
+        end
 
-    describe '#_embargo?' do
-      let(:doc_no_embargo) { {} }
-      let(:doc_no_valid_date) { { 'pu.embargo.lift' => ['never'] } }
-      let(:doc_lift_date) { { 'pu.embargo.lift' => ['2014-07-01'] } }
-      let(:doc_terms_date) { { 'pu.embargo.terms' => ['2100-01-01'] } }
+        context 'when the access rights are restricted to walk-in patrons' do
+          let(:attrs) do
+            {
+              'id' => '123',
+              'pu.location' => ['restriction'],
+              'pu.mudd.walkin' => ['yes']
+            }
+          end
 
-      it 'returns false for doc without embargo field' do
-        expect(subject.send(:embargo?, doc_no_embargo)).to be false
-      end
-
-      it 'returns false for doc with invalid date' do
-        expect(subject.send(:embargo?, doc_no_valid_date)).to be false
-      end
-
-      it 'returns false if embargo date in past' do
-        expect(subject.send(:embargo?, doc_lift_date)).to be false
-      end
-
-      it 'returns true if embargo date is in future' do
-        expect(subject.send(:embargo?, doc_terms_date)).to be true
+          it 'generates a specific restriction note' do
+            expect(solr_document).to be_a(DataspaceDocument)
+            expect(values).to be_a(Hash)
+            expect(values).to include('restrictions_note_display')
+            expect(values['restrictions_note_display']).to eq(['restriction'])
+          end
+        end
       end
     end
 
@@ -611,13 +634,6 @@ module Orangetheses
 
       it 'dedups' do
         expect(subject.send(:code_to_language, %w[en_US en])).to eq ['English']
-      end
-    end
-
-    describe '#get_solr_doc' do
-      it 'includes languages in the language_facet and language_name_display fields' do
-        expect(subject.get_solr_doc(doc)['language_facet']).to eq ['English']
-        expect(subject.get_solr_doc(doc)['language_name_display']).to eq ['English']
       end
     end
   end

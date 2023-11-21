@@ -86,22 +86,28 @@ module Orangetheses
     ##
     # Cache all collections
     def cache_all_collections(indexer)
-      records = []
+      solr_documents = []
+
       collections.each do |collection_id|
-        records.append(cache_collection(indexer, collection_id))
+        collection_documents = cache_collection(indexer, collection_id)
+        solr_documents += collection_documents
       end
-      records.flatten
+
+      solr_documents.flatten
     end
 
     ##
     # Cache a single collection
     def cache_collection(indexer, collection_id)
-      records = []
-      collection = fetch_collection(collection_id)
-      collection.each do |record|
-        records << indexer.get_solr_doc(record)
+      solr_documents = []
+
+      elements = fetch_collection(collection_id)
+      elements.each do |attrs|
+        solr_document = indexer.build_solr_document(**attrs)
+        solr_documents << solr_document
       end
-      records
+
+      solr_documents
     end
 
     ##
@@ -111,8 +117,10 @@ module Orangetheses
       indexer = Indexer.new
       fetcher = Fetcher.new
       File.open(fetcher.json_file_path, 'w') do |f|
-        fetched = fetcher.cache_collection(indexer, collection_id)
-        f.puts JSON.pretty_generate(fetched)
+        documents = fetcher.cache_collection(indexer, collection_id)
+        solr_documents = documents.map(&:to_solr)
+        json_cache = JSON.pretty_generate(solr_documents)
+        f.puts(json_cache)
       end
     end
 
@@ -123,8 +131,10 @@ module Orangetheses
       indexer = Indexer.new
       fetcher = Fetcher.new
       File.open(fetcher.json_file_path, 'w') do |f|
-        fetched = fetcher.cache_all_collections(indexer)
-        f.puts JSON.pretty_generate(fetched)
+        documents = fetcher.cache_all_collections(indexer)
+        solr_documents = documents.map(&:to_solr)
+        json_cache = JSON.pretty_generate(solr_documents)
+        f.puts(json_cache)
       end
     end
 

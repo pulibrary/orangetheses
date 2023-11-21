@@ -89,14 +89,74 @@ module Orangetheses
       dc_elements.each { |element| @logger.error(element.to_s) }
     end
 
-    def get_solr_doc(doc)
-      build_solr_hash(doc)
+    # Constructs DataspaceDocument objects from a Hash of attributes
+    # @returns [DataspaceDocument]
+    def build_solr_document(**values)
+      id = values['id']
+
+      title = values['dc.title']
+      title_t = title_search_hash(title)
+      title_citation_display = first_or_nil(title)
+      title_display = title_citation_display
+      title_sort = title_sort_hash(title)
+
+      author = values['dc.contributor.author']
+      author_sort = first_or_nil(author)
+
+      electronic_access_1display = ark_hash(values)
+      # restrictions_note_display = restrictions_display_text(values)
+
+      identifier_other = values['dc.identifier.other']
+      call_number_display = call_number(identifier_other)
+      call_number_browse_s = call_number_display
+
+      language_iso = values['dc.language.iso']
+      language_facet = code_to_language(language_iso)
+      language_name_display = language_facet
+
+      embargo_lift = values['pu.embargo.lift']
+      embargo_terms = values['pu.embargo.terms']
+      walkin = values['pu.mudd.walkin']
+      location = values['pu.location']
+      access_rights = values['dc.rights.accessRights']
+
+      attrs = {
+        'id' => id,
+        'title_t' => title_t,
+        'title_citation_display' => title_citation_display,
+        'title_display' => title_display,
+        'title_sort' => title_sort,
+        'author_sort' => author_sort,
+        'electronic_access_1display' => electronic_access_1display,
+        'pu.embargo.lift' => embargo_lift,
+        'pu.embargo.terms' => embargo_terms,
+        'pu.mudd.walkin' => walkin,
+        'pu.location' => location,
+        'dc.rights.accessRights' => access_rights,
+        'call_number_display' => call_number_display,
+        'call_number_browse_s' => call_number_browse_s,
+        'language_facet' => language_facet,
+        'language_name_display' => language_name_display
+      }
+      mapped = map_rest_non_special_to_solr(values)
+      attrs.merge!(mapped)
+
+      holdings = holdings_access(values)
+      attrs.merge!(holdings)
+
+      class_years = class_year_fields(values)
+      attrs.merge!(class_years)
+
+      attrs.merge!(HARD_CODED_TO_ADD)
+
+      DataspaceDocument.new(document: attrs)
     end
 
     # @param doc [Hash] Metadata hash with dc and pu terms
     # @return  The HTTP response status from Solr (??)
-    def index_hash(doc)
-      solr_doc = build_solr_hash(doc)
+    def index_document(**values)
+      solr_doc = build_solr_document(**values)
+
       @logger.info("Adding #{solr_doc['id']}")
       @solr.add(solr_doc, add_attributes: { commitWithin: 10 })
     rescue NoMethodError => e
@@ -127,6 +187,7 @@ module Orangetheses
         'electronic_access_1display' => ark(dc_elements),
         'standard_no_1display' => non_ark_ids(dc_elements),
         'electronic_portfolio_s' => online_holding({})
+
       }
       h.merge!(map_non_special_to_solr(dc_elements))
       h.merge!(HARD_CODED_TO_ADD)
@@ -209,28 +270,6 @@ module Orangetheses
       authors.empty? ? nil : authors.first.text
     end
 
-    def build_solr_hash(doc)
-      h = {
-        'id' => doc['id'],
-        'title_t' => title_search_hash(doc['dc.title']),
-        'title_citation_display' => first_or_nil(doc['dc.title']),
-        'title_display' => first_or_nil(doc['dc.title']),
-        'title_sort' => title_sort_hash(doc['dc.title']),
-        'author_sort' => first_or_nil(doc['dc.contributor.author']),
-        'electronic_access_1display' => ark_hash(doc),
-        'restrictions_note_display' => restrictions_display_text(doc),
-        'call_number_display' => call_number(doc['dc.identifier.other']),
-        'call_number_browse_s' => call_number(doc['dc.identifier.other']),
-        'language_facet' => code_to_language(doc['dc.language.iso']),
-        'language_name_display' => code_to_language(doc['dc.language.iso'])
-      }
-      h.merge!(map_rest_non_special_to_solr(doc))
-      h.merge!(holdings_access(doc))
-      h.merge!(class_year_fields(doc))
-      h.merge!(HARD_CODED_TO_ADD)
-      h
-    end
-
     def choose_date_hash(doc)
       dates = all_date_elements_hash(doc).map { |_k, v| Chronic.parse(v.first) }.compact
       dates.empty? ? nil : dates.min.year
@@ -310,6 +349,8 @@ module Orangetheses
     end
 
     def embargo(doc)
+      return if doc.key?('pu.embargo.lift')
+
       date = doc['pu.embargo.lift'] || doc['pu.embargo.terms']
       date = Chronic.parse(date.first) unless date.nil?
       date = date.strftime('%B %-d, %Y') unless date.nil?

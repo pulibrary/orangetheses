@@ -27,10 +27,11 @@ module Orangetheses
   REST_LIMIT = 100
   RETRY_LIMIT = 5
 
-  autoload :Harvester, 'orangetheses/harvester'
-  autoload :Fetcher, 'orangetheses/fetcher'
-  autoload :Indexer, 'orangetheses/indexer'
-  autoload :Visual, 'orangetheses/visual'
+  autoload(:DataspaceDocument, 'orangetheses/dataspace_document')
+  autoload(:Fetcher, 'orangetheses/fetcher')
+  autoload(:Harvester, 'orangetheses/harvester')
+  autoload(:Indexer, 'orangetheses/indexer')
+  autoload(:Visual, 'orangetheses/visual')
 end
 
 require 'orangetheses/railtie' if defined?(Rails)

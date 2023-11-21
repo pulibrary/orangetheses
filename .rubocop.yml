@@ -62,6 +62,7 @@ RSpec/ContextWording:
 RSpec/ExampleLength:
   Exclude:
     - 'spec/indexer_spec.rb'
+    - 'spec/lib/orangetheses/fetcher_api_spec.rb'
     - 'spec/lib/orangetheses/visual_spec.rb'
 
 RSpec/MultipleExpectations:

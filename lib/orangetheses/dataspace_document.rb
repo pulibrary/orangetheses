@@ -1,0 +1,112 @@
+# frozen_string_literal: true
+
+module Orangetheses
+  # Class modeling the behavior for Solr Documents generated with DataSpace Item
+  #   metadata
+  class DataspaceDocument
+    attr_reader :document
+
+    def initialize(document:)
+      @document = document
+    end
+
+    def id
+      document['id']
+    end
+
+    def embargo_lift_field
+      return unless document.key?('pu.embargo.lift')
+
+      @embargo_lift_field ||= document['pu.embargo.lift']
+    end
+
+    def embargo_terms_field
+      return unless document.key?('pu.embargo.terms')
+
+      @embargo_terms_field ||= document['pu.embargo.terms']
+    end
+
+    def embargo_date_fields
+      @embargo_date_fields ||= (embargo_lift_field || embargo_terms_field)
+    end
+
+    def embargo_date_field
+      return if embargo_date_fields.nil?
+
+      embargo_date_fields.first
+    end
+
+    def embargo?
+      return false if embargo_date.nil?
+
+      embargo_date > Time.now
+    end
+
+    def embargo_date
+      return if embargo_date_field.nil?
+
+      @embargo_date ||= Chronic.parse(embargo_date_field)
+    end
+
+    def formatted_embargo_date
+      return if embargo_date.nil?
+
+      @formatted_embargo_date ||= embargo_date.strftime('%B %-d, %Y')
+    end
+
+    def location
+      @location ||= document['pu.location']
+    end
+
+    def access_rights
+      @access_rights ||= document['dc.rights.accessRights']
+    end
+
+    def restrictions_access
+      values = [
+        location,
+        access_rights
+      ]
+      flattened = values.flatten
+      flattened.compact
+    end
+
+    def walkin
+      @walkin ||= document['pu.mudd.walkin']
+    end
+
+    def walkin?
+      !walkin.nil? && walkin.first == 'yes'
+    end
+
+    def to_solr
+      values = document.dup
+      values['restrictions_note_display'] = restrictions_note_display
+      values
+    end
+
+    private
+
+    # rubocop:disable Layout/LineLength
+    def walkin_restrictions
+      "Walk-in Access. This thesis can only be viewed on computer terminals at the '<a href=\"http://mudd.princeton.edu\">Mudd Manuscript Library</a>."
+    end
+    # rubocop:enable Layout/LineLength
+
+    # rubocop:disable Layout/LineLength
+    def embargo_restrictions_note
+      "This content is embargoed until #{formatted_embargo_date}. For more information contact the <a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{id}\"> Mudd Manuscript Library</a>."
+    end
+    # rubocop:enable Layout/LineLength
+
+    def restrictions_note_display
+      if embargo?
+        embargo_restrictions_note
+      elsif location || access_rights
+        restrictions_access
+      elsif walkin?
+        walkin_restrictions
+      end
+    end
+  end
+end
