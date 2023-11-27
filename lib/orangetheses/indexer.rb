@@ -104,7 +104,6 @@ module Orangetheses
       author_sort = first_or_nil(author)
 
       electronic_access_1display = ark_hash(values)
-      # restrictions_note_display = restrictions_display_text(values)
 
       identifier_other = values['dc.identifier.other']
       call_number_display = call_number(identifier_other)
@@ -149,7 +148,7 @@ module Orangetheses
 
       attrs.merge!(HARD_CODED_TO_ADD)
 
-      DataspaceDocument.new(document: attrs)
+      DataspaceDocument.new(document: attrs, logger: @logger)
     end
 
     # @param doc [Hash] Metadata hash with dc and pu terms

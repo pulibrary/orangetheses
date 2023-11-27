@@ -11,6 +11,8 @@ AllCops:
 Layout/LineLength:
   Exclude:
     - 'lib/orangetheses/fetcher.rb'
+    - 'spec/indexer_spec.rb'
+    - 'spec/lib/orangetheses/dataspace_document_spec.rb'
     - 'spec/lib/orangetheses/fetcher_api_spec.rb'
     - 'spec/lib/orangetheses/visual_spec.rb'
 
@@ -68,6 +70,7 @@ RSpec/ExampleLength:
 RSpec/MultipleExpectations:
   Exclude:
     - 'spec/indexer_spec.rb'
+    - 'spec/lib/orangetheses/dataspace_document_spec.rb'
     - 'spec/lib/orangetheses/fetcher_api_spec.rb'
     - 'spec/lib/orangetheses/fetcher_spec.rb'
     - 'spec/lib/orangetheses/visual_spec.rb'

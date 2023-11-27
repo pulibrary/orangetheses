@@ -1,13 +1,16 @@
 # frozen_string_literal: true
 
+require 'chronic'
+
 module Orangetheses
   # Class modeling the behavior for Solr Documents generated with DataSpace Item
   #   metadata
   class DataspaceDocument
     attr_reader :document
 
-    def initialize(document:)
+    def initialize(document:, logger:)
       @document = document
+      @logger = logger
     end
 
     def id
@@ -36,22 +39,32 @@ module Orangetheses
       embargo_date_fields.first
     end
 
-    def embargo?
-      return false if embargo_date.nil?
-
-      embargo_date > Time.now
-    end
-
     def embargo_date
       return if embargo_date_field.nil?
 
       @embargo_date ||= Chronic.parse(embargo_date_field)
     end
 
+    def embargo_present?
+      !embargo_date_field.nil?
+    end
+
     def formatted_embargo_date
       return if embargo_date.nil?
 
       @formatted_embargo_date ||= embargo_date.strftime('%B %-d, %Y')
+    end
+
+    def embargo_valid?
+      return false unless embargo_present?
+
+      !embargo_date.nil?
+    end
+
+    def embargo_active?
+      return false unless embargo_valid?
+
+      embargo_date > Time.now
     end
 
     def location
@@ -94,19 +107,32 @@ module Orangetheses
     # rubocop:enable Layout/LineLength
 
     # rubocop:disable Layout/LineLength
+    def invalid_embargo_restrictions_note
+      "This content is currently under embargo. For more information contact the <a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{id}\"> Mudd Manuscript Library</a>."
+    end
+    # rubocop:enable Layout/LineLength
+
+    # rubocop:disable Layout/LineLength
     def embargo_restrictions_note
       "This content is embargoed until #{formatted_embargo_date}. For more information contact the <a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{id}\"> Mudd Manuscript Library</a>."
     end
     # rubocop:enable Layout/LineLength
 
+    # rubocop:disable Metrics/MethodLength
     def restrictions_note_display
-      if embargo?
-        embargo_restrictions_note
-      elsif location || access_rights
+      if location || access_rights
         restrictions_access
       elsif walkin?
         walkin_restrictions
+      elsif embargo_present?
+        if !embargo_valid?
+          logger.warn("Failed to parse the embargo date for #{id}")
+          invalid_embargo_restrictions_note
+        elsif embargo_active?
+          embargo_restrictions_note
+        end
       end
     end
+    # rubocop:enable Metrics/MethodLength
   end
 end

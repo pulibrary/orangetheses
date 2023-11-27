@@ -331,11 +331,11 @@ module Orangetheses
             }
           end
 
-          it 'returns nil when the embargo date is invalid' do
+          it 'returns a message without the embargo date when the embargo date is invalid' do
             expect(solr_document).to be_a(DataspaceDocument)
             expect(values).to be_a(Hash)
             expect(values).to include('restrictions_note_display')
-            expect(values['restrictions_note_display']).to be nil
+            expect(values['restrictions_note_display']).to eq('This content is currently under embargo. For more information contact the <a href="mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/123"> Mudd Manuscript Library</a>.')
           end
         end
 
@@ -347,7 +347,7 @@ module Orangetheses
             }
           end
 
-          it 'returns valid formatted embargo date in restriction note' do
+          it 'returns no restriction note' do
             expect(solr_document).to be_a(DataspaceDocument)
             expect(values).to be_a(Hash)
             expect(values).to include('restrictions_note_display')
