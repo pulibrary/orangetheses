@@ -21,9 +21,6 @@ module Orangetheses
   # REST service
   # These are the handle and dspace ID for Princeton University Undergraduate Senior Theses, 1924-2021
   # on the production server.
-  COMMUNITY_HANDLE = '88435/dsp019c67wm88m'
-  COMMUNITY_ID = '267'
-  SERVER_URL = 'https://dataspace.princeton.edu/rest'
   REST_LIMIT = 100
   RETRY_LIMIT = 5
 

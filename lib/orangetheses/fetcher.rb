@@ -14,12 +14,52 @@ module Orangetheses
   class Fetcher
     attr_writer :logger
 
+    def self.config_file_path
+      File.join(File.dirname(__FILE__), '..', '..', 'config', 'dspace.yml')
+    end
+
+    def self.config_file
+      IO.read(config_file_path)
+    end
+
+    def self.config_erb
+      ERB.new(config_file).result(binding)
+    rescue StandardError, SyntaxError => e
+      raise("#{config_file} was found, but could not be parsed with ERB. \n#{e.inspect}")
+    end
+
+    def self.config_yaml
+      YAML.safe_load(config_erb, aliases: true)
+    end
+
+    def self.env
+      ENV['ORANGETHESES_ENV'] || 'development'
+    end
+
+    def self.env_config
+      config_yaml[env]
+    end
+
+    def self.default_server
+      env_config['server']
+    end
+
+    def self.default_community
+      env_config['community']
+    end
+
+    def self.default_rest_limit
+      env_config['rest_limit']
+    end
+
     # @param [Hash] opts  options to pass to the client
     # @option opts [String] :server ('https://dataspace.princeton.edu/rest/')
     # @option opts [String] :community ('88435/dsp019c67wm88m')
-    def initialize(server: SERVER_URL, community: COMMUNITY_HANDLE)
-      @server = server
-      @community = community
+    def initialize(server: nil, community: nil, rest_limit: nil)
+      @server = server || self.class.default_server
+      @community = community || self.class.default_community
+
+      @rest_limit = rest_limit || self.class.default_rest_limit
     end
 
     def logger
@@ -54,7 +94,7 @@ module Orangetheses
       completed = false
 
       until completed
-        url = build_collection_url(id:, limit: REST_LIMIT, offset:)
+        url = build_collection_url(id:, offset:)
         logger.debug("Querying for the DSpace Collection at #{url}...")
         Retriable.retriable(on: JSON::ParserError, tries: Orangetheses::RETRY_LIMIT, on_retry: log_retries) do
           response = api_client.get(url)
@@ -63,7 +103,7 @@ module Orangetheses
             completed = true
           else
             theses << flatten_json(items)
-            offset += REST_LIMIT
+            offset += @rest_limit
           end
         end
       end
@@ -147,8 +187,8 @@ module Orangetheses
 
     private
 
-    def build_collection_url(id:, limit:, offset:)
-      "#{@server}/collections/#{id}/items?limit=#{limit}&offset=#{offset}&expand=metadata"
+    def build_collection_url(id:, offset:)
+      "#{@server}/collections/#{id}/items?limit=#{@rest_limit}&offset=#{offset}&expand=metadata"
     end
 
     def flatten_json(items)
