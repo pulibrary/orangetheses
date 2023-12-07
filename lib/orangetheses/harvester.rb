@@ -33,13 +33,14 @@ module Orangetheses
     def initialize(dir: Dir.mktmpdir,
                    server: nil,
                    metadata_prefix: nil,
-                   set: nil,
-                   verb: nil)
+                   verb: nil,
+                   set: nil)
 
       @dir = dir
       @server = server || self.class.default_server
       @metadata_prefix = metadata_prefix || self.class.default_metadata_prefix
       @verb = verb || self.class.default_verb
+      @set = set || self.class.default_set
     end
 
     # @return [Array<String>] A list of directories containing metadata records
@@ -47,7 +48,7 @@ module Orangetheses
       dirs = []
       dir = nil
       client.list_records(headers).full.each_with_index do |record, i|
-        if i % 1000 == 0
+        if (i % 1000).zero?
           dir = Dir.mktmpdir(nil, @dir)
           dirs << dir
         end
@@ -66,7 +67,7 @@ module Orangetheses
     end
 
     def index_item(indexer:, identifier:)
-      record_response = client.get_record(identifier: identifier)
+      record_response = client.get_record(identifier:)
       record = record_response.record
 
       indexer.index(record.metadata)

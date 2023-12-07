@@ -13,7 +13,7 @@ require 'tmpdir'
 module Orangetheses
   class Visual
     VISUALS = 'VisualsResults.tar.gz'
-    VISUALS_URL = "http://libweb5.princeton.edu/NewStaff/visuals/#{VISUALS}"
+    VISUALS_URL = "http://libweb5.princeton.edu/NewStaff/visuals/#{VISUALS}".freeze
     SEPARATOR = '—'
 
     ### Unique visual xml elements ###
@@ -67,8 +67,8 @@ module Orangetheses
 
     def self.config_yaml
       ERB.new(IO.read(config_file)).result(binding)
-    rescue StandardError, SyntaxError => error
-      raise("#{config_file} was found, but could not be parsed with ERB. \n#{error.inspect}")
+    rescue StandardError, SyntaxError => e
+      raise("#{config_file} was found, but could not be parsed with ERB. \n#{e.inspect}")
     end
 
     def self.config_values
@@ -84,7 +84,7 @@ module Orangetheses
     end
 
     def self.default_solr_url
-      config.solr["url"]
+      config.solr['url']
     end
 
     def initialize(solr_server = nil)
@@ -92,7 +92,7 @@ module Orangetheses
 
       @tmpdir = Dir.mktmpdir
       @solr = RSolr.connect(url: solr_server, read_timeout: 120, open_timeout: 120)
-      @logger = Logger.new(STDOUT)
+      @logger = Logger.new($stdout)
       @logger.level = Logger::INFO
       @logger.formatter = proc do |severity, datetime, _progname, msg|
         time = datetime.strftime('%H:%M:%S')
@@ -112,10 +112,12 @@ module Orangetheses
 
     private
 
+    # rubocop:disable Naming/AccessorMethodName
     def get_all_visuals
       `curl #{VISUALS_URL} > #{@tmpdir}/#{VISUALS}`
       `tar -zxvf #{@tmpdir}/#{VISUALS} -C #{@tmpdir}`
     end
+    # rubocop:enable Naming/AccessorMethodName
 
     def process_visual_file(visual)
       objects = []
@@ -170,11 +172,11 @@ module Orangetheses
     end
 
     def related_names(doc)
-      if Array(doc['author_display']).length > 4
-        related_names = doc['author_display']
-        doc['author_display'] = [related_names.shift]
-        doc['related_name_json_1display'] = { 'Related name' => related_names }.to_json.to_s
-      end
+      return unless Array(doc['author_display']).length > 4
+
+      related_names = doc['author_display']
+      doc['author_display'] = [related_names.shift]
+      doc['related_name_json_1display'] = { 'Related name' => related_names }.to_json.to_s
     end
 
     def choose_date(elements)
@@ -190,9 +192,9 @@ module Orangetheses
       elsif year == '173'
         '1730'
       elsif year.length == 2 # century
-        (year.to_i - 1).to_s + '00'
+        "#{year.to_i - 1}00"
       elsif year.length == 3
-        '0' + year
+        "0#{year}"
       elsif year == 'uuuu'
         nil
       else
@@ -223,7 +225,28 @@ module Orangetheses
       links = elements.select { |e| e.name == 'link' || e.name == 'colllink' }
       working_links = []
       links.each do |link|
-        link_status = Faraday.get(URI.escape(link.text)).status
+        begin
+          resource_uri = URI.parse(link.text)
+        rescue StandardError
+          link_text = link.text
+          pattern = %r{(https?://)(.+?)(/.*)$}
+          match = pattern.match(link_text)
+
+          resource_uri = if match
+                           scheme = match[1]
+                           fqdn = match[2]
+                           segments = match[3].split('/')
+                           escaped_path = segments.map { |s| CGI.escape(s).gsub('+', '%20') }
+                           path = escaped_path.join('/')
+                           "#{scheme}#{fqdn}#{path}"
+                         else
+                           segments = link_text.split('/')
+                           escaped = segments.map { |s| CGI.escape(s).gsub('+', '%20') }
+                           escaped.join('/')
+                         end
+        end
+        response = Faraday.get(resource_uri)
+        link_status = response.status
         if link_status == 200
           working_links << link
         elsif link_status == 301
@@ -273,7 +296,7 @@ module Orangetheses
                   pub
                 else
                   "#{pub}, #{date}"
-      end
+                end
       pubdate.empty? ? nil : pubdate.split.map(&:capitalize).join(' ')
     end
 
@@ -314,7 +337,7 @@ module Orangetheses
     end
 
     def get_library(code)
-      location = find_location(code: code)
+      location = find_location(code:)
       return if location.nil?
 
       location_library = location['library']
@@ -324,10 +347,10 @@ module Orangetheses
     end
 
     def location_full_display(code)
-      location = find_location(code: code)
+      location = find_location(code:)
       return if location.nil?
 
-      location['label'] == '' ? get_library(code) : get_library(code) + ' - ' + location['label']
+      location['label'] == '' ? get_library(code) : "#{get_library(code)} - #{location['label']}"
     end
 
     def access_facet(location_code, links)
@@ -370,11 +393,13 @@ module Orangetheses
       collapse_single_val_arrays(h)
     end
 
+    # rubocop:disable Naming/MethodParameterName
     def collapse_single_val_arrays(h)
       h.each do |k, v|
         h[k] = v.first if v.is_a?(Array) && v.length == 1
       end
       h
     end
+    # rubocop:enable Naming/MethodParameterName
   end
 end

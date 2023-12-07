@@ -9,9 +9,10 @@ require 'webmock/rspec'
 
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
-Coveralls.wear!
-
-SimpleCov.formatter = Coveralls::SimpleCov::Formatter
+SimpleCov.formatters = [
+  SimpleCov::Formatter::HTMLFormatter,
+  Coveralls::SimpleCov::Formatter
+]
 SimpleCov.start do
   add_filter 'spec'
 end

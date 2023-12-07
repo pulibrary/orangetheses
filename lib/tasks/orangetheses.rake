@@ -15,7 +15,7 @@ namespace :orangetheses do
   task :cache_theses do |_task, _args|
     Orangetheses::Fetcher.write_all_collections_to_cache
   end
-  
+
   desc 'Exports a specific collection as solr json docs to FILEPATH'
   task :cache_collection, [:collection_id] do |_task, args|
     collection_id = args[:collection_id]

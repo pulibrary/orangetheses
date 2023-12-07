@@ -42,8 +42,8 @@ module Orangetheses
 
     def self.config_yaml
       ERB.new(IO.read(config_file)).result(binding)
-    rescue StandardError, SyntaxError => error
-      raise("#{config_file} was found, but could not be parsed with ERB. \n#{error.inspect}")
+    rescue StandardError, SyntaxError => e
+      raise("#{config_file} was found, but could not be parsed with ERB. \n#{e.inspect}")
     end
 
     def self.config_values
@@ -59,14 +59,14 @@ module Orangetheses
     end
 
     def self.default_solr_url
-      config.solr["url"]
+      config.solr['url']
     end
 
     def initialize(solr_server = nil)
       solr_server ||= self.class.default_solr_url
 
       @solr = RSolr.connect(url: solr_server)
-      @logger = Logger.new(STDOUT)
+      @logger = Logger.new($stdout)
       @logger.level = Logger::INFO
       @logger.formatter = proc do |severity, datetime, _progname, msg|
         time = datetime.strftime('%H:%M:%S')
@@ -84,25 +84,84 @@ module Orangetheses
     rescue NoMethodError => e
       @logger.error(e.to_s)
       @logger.error(metadata_element)
-    rescue Exception => e
+    rescue StandardError => e
       @logger.error(e.to_s)
       dc_elements.each { |element| @logger.error(element.to_s) }
     end
 
-    def get_solr_doc(doc)
-      build_solr_hash(doc)
+    # Constructs DataspaceDocument objects from a Hash of attributes
+    # @returns [DataspaceDocument]
+    def build_solr_document(**values)
+      id = values['id']
+
+      title = values['dc.title']
+      title_t = title_search_hash(title)
+      title_citation_display = first_or_nil(title)
+      title_display = title_citation_display
+      title_sort = title_sort_hash(title)
+
+      author = values['dc.contributor.author']
+      author_sort = first_or_nil(author)
+
+      electronic_access_1display = ark_hash(values)
+
+      identifier_other = values['dc.identifier.other']
+      call_number_display = call_number(identifier_other)
+      call_number_browse_s = call_number_display
+
+      language_iso = values['dc.language.iso']
+      language_facet = code_to_language(language_iso)
+      language_name_display = language_facet
+
+      embargo_lift = values['pu.embargo.lift']
+      embargo_terms = values['pu.embargo.terms']
+      walkin = values['pu.mudd.walkin']
+      location = values['pu.location']
+      access_rights = values['dc.rights.accessRights']
+
+      attrs = {
+        'id' => id,
+        'title_t' => title_t,
+        'title_citation_display' => title_citation_display,
+        'title_display' => title_display,
+        'title_sort' => title_sort,
+        'author_sort' => author_sort,
+        'electronic_access_1display' => electronic_access_1display,
+        'pu.embargo.lift' => embargo_lift,
+        'pu.embargo.terms' => embargo_terms,
+        'pu.mudd.walkin' => walkin,
+        'pu.location' => location,
+        'dc.rights.accessRights' => access_rights,
+        'call_number_display' => call_number_display,
+        'call_number_browse_s' => call_number_browse_s,
+        'language_facet' => language_facet,
+        'language_name_display' => language_name_display
+      }
+      mapped = map_rest_non_special_to_solr(values)
+      attrs.merge!(mapped)
+
+      holdings = holdings_access(values)
+      attrs.merge!(holdings)
+
+      class_years = class_year_fields(values)
+      attrs.merge!(class_years)
+
+      attrs.merge!(HARD_CODED_TO_ADD)
+
+      DataspaceDocument.new(document: attrs, logger: @logger)
     end
 
     # @param doc [Hash] Metadata hash with dc and pu terms
     # @return  The HTTP response status from Solr (??)
-    def index_hash(doc)
-      solr_doc = build_solr_hash(doc)
+    def index_document(**values)
+      solr_doc = build_solr_document(**values)
+
       @logger.info("Adding #{solr_doc['id']}")
       @solr.add(solr_doc, add_attributes: { commitWithin: 10 })
     rescue NoMethodError => e
       @logger.error(e.to_s)
       @logger.error(doc.to_s)
-    rescue Exception => e
+    rescue StandardError => e
       @logger.error(e.to_s)
       @logger.error(doc.to_s)
     end
@@ -127,6 +186,7 @@ module Orangetheses
         'electronic_access_1display' => ark(dc_elements),
         'standard_no_1display' => non_ark_ids(dc_elements),
         'electronic_portfolio_s' => online_holding({})
+
       }
       h.merge!(map_non_special_to_solr(dc_elements))
       h.merge!(HARD_CODED_TO_ADD)
@@ -209,28 +269,6 @@ module Orangetheses
       authors.empty? ? nil : authors.first.text
     end
 
-    def build_solr_hash(doc)
-      h = {
-        'id' => doc['id'],
-        'title_t' => title_search_hash(doc['dc.title']),
-        'title_citation_display' => first_or_nil(doc['dc.title']),
-        'title_display' => first_or_nil(doc['dc.title']),
-        'title_sort' => title_sort_hash(doc['dc.title']),
-        'author_sort' => first_or_nil(doc['dc.contributor.author']),
-        'electronic_access_1display' => ark_hash(doc),
-        'restrictions_note_display' => restrictions_display_text(doc),
-        'call_number_display' => call_number(doc['dc.identifier.other']),
-        'call_number_browse_s' => call_number(doc['dc.identifier.other']),
-        'language_facet' => code_to_language(doc['dc.language.iso']),
-        'language_name_display' => code_to_language(doc['dc.language.iso'])
-      }
-      h.merge!(map_rest_non_special_to_solr(doc))
-      h.merge!(holdings_access(doc))
-      h.merge!(class_year_fields(doc))
-      h.merge!(HARD_CODED_TO_ADD)
-      h
-    end
-
     def choose_date_hash(doc)
       dates = all_date_elements_hash(doc).map { |_k, v| Chronic.parse(v.first) }.compact
       dates.empty? ? nil : dates.min.year
@@ -249,13 +287,13 @@ module Orangetheses
     # is pasted directly into the search box and when sub/superscripts are placed
     # adjacent to regular characters
     def title_search_hash(titles)
-      unless titles.nil?
-        title = titles.first
-        title.scan(/\\\(.*?\\\)/).each do |latex|
-          title = title.gsub(latex, latex.gsub(/[^\p{Alnum}]/, ''))
-        end
-        title == titles.first ? title : [titles.first, title]
+      return if titles.nil?
+
+      title = titles.first
+      title.scan(/\\\(.*?\\\)/).each do |latex|
+        title = title.gsub(latex, latex.gsub(/[^\p{Alnum}]/, ''))
       end
+      title == titles.first ? title : [titles.first, title]
     end
 
     def ark_hash(doc)
@@ -268,7 +306,7 @@ module Orangetheses
     end
 
     def first_or_nil(field)
-      field.nil? ? nil : field.first
+      field&.first
     end
 
     def dspace_display_text(dc_elements)
@@ -306,12 +344,12 @@ module Orangetheses
         return false
       end
 
-      # rubocop:disable Rails/TimeZone
       date > Time.now
-      # rubocop:enable Rails/TimeZone
     end
 
     def embargo(doc)
+      return if doc.key?('pu.embargo.lift')
+
       date = doc['pu.embargo.lift'] || doc['pu.embargo.terms']
       date = Chronic.parse(date.first) unless date.nil?
       date = date.strftime('%B %-d, %Y') unless date.nil?
