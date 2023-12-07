@@ -119,6 +119,7 @@ module Orangetheses
     # rubocop:enable Layout/LineLength
 
     # rubocop:disable Metrics/MethodLength
+    # rubocop:disable Metrics/PerceivedComplexity
     def restrictions_note_display
       if location || access_rights
         restrictions_access
@@ -134,5 +135,6 @@ module Orangetheses
       end
     end
     # rubocop:enable Metrics/MethodLength
+    # rubocop:enable Metrics/PerceivedComplexity
   end
 end

@@ -11,19 +11,19 @@ describe Orangetheses::Fetcher do
   let(:cache) { fixture_path('cache_output.json') }
 
   before do
-    stub_request(:get, 'https://dataspace.princeton.edu/rest/communities/')
+    stub_request(:get, 'https://dataspace-dev.princeton.edu/rest/communities/')
       .to_return(status: 200, body: api_communities, headers: {})
 
-    stub_request(:get, 'https://dataspace.princeton.edu/rest/communities/267/collections')
+    stub_request(:get, 'https://dataspace-dev.princeton.edu/rest/communities/267/collections')
       .to_return(status: 200, body: api_collections, headers: {})
 
-    stub_request(:get, 'https://dataspace.princeton.edu/rest/collections/361/items?expand=metadata&limit=100&offset=0')
+    stub_request(:get, 'https://dataspace-dev.princeton.edu/rest/collections/361/items?expand=metadata&limit=100&offset=0')
       .to_return(status: 200, body: api_client_get, headers: {})
 
-    stub_request(:get, 'https://dataspace.princeton.edu/rest/collections/361/items?expand=metadata&limit=100&offset=100')
+    stub_request(:get, 'https://dataspace-dev.princeton.edu/rest/collections/361/items?expand=metadata&limit=100&offset=100')
       .to_return(status: 200, body: '[]', headers: {})
 
-    stub_request(:get, 'https://dataspace.princeton.edu/rest/collections/9999/items?expand=metadata&limit=100&offset=0')
+    stub_request(:get, 'https://dataspace-dev.princeton.edu/rest/collections/9999/items?expand=metadata&limit=100&offset=0')
       .to_return(status: 200, body: '', headers: {})
   end
 
@@ -100,6 +100,128 @@ describe Orangetheses::Fetcher do
       expect { fetcher.fetch_collection('9999') }.to raise_error JSON::ParserError
       log.rewind
       expect(log.read).to match("#{Orangetheses::RETRY_LIMIT} tries")
+    end
+  end
+
+  context 'within the staging environment' do
+    let(:community_json) do
+      {
+        "id": 267,
+        "name": 'Princeton University Undergraduate Senior Theses, 1924-2021',
+        "handle": '88435/dsp019c67wm88m',
+        "type": 'community',
+        "link": '/rest/communities/267',
+        "expand": %w[
+          parentCommunity
+          collections
+          subCommunities
+          logo
+          all
+        ],
+        "logo": nil,
+        "parentCommunity": nil,
+        "copyrightText": '',
+        "introductoryText": "<h4>Members of the Princeton community wishing to view a senior thesis from 2014-2021 while away from campus should follow the instructions outlined on the <a href=\"https://princeton.service-now.com/snap?sys_id=6023&id=kb_article\">OIT website</a> for connecting to campus resources remotely. </h4>\r\n<h5>\r\nSee our <a href=\"http://libguides.princeton.edu/SeniorTheses/Home/\">Senior Thesis LibGuide</a> for helfpul information on searching and accessing Senior Theses</h5>",
+        "shortDescription": '',
+        "sidebarText": '',
+        "countItems": 70_734,
+        "subcommunities": [],
+        "collections": []
+      }
+    end
+    let(:communities_response_json) do
+      [
+        community_json
+      ]
+    end
+    let(:communities_response_body) do
+      JSON.generate(communities_response_json)
+    end
+    let(:collections_response_json) { [] }
+    let(:collections_response_body) do
+      JSON.generate(collections_response_json)
+    end
+
+    before do
+      @env = ENV['ORANGETHESES_ENV']
+      ENV['ORANGETHESES_ENV'] = 'staging'
+
+      stub_request(:get, 'https://dataspace-staging.princeton.edu/rest/communities/').to_return(status: 200, body: communities_response_body)
+      stub_request(:get, 'https://dataspace-staging.princeton.edu/rest/communities/267/collections').to_return(status: 200, body: collections_response_body)
+    end
+
+    after do
+      # rubocop:disable RSpec/InstanceVariable
+      ENV['ORANGETHESES_ENV'] = @env
+      # rubocop:enable RSpec/InstanceVariable
+    end
+
+    it 'requests from the staging URI endpoint' do
+      fetcher.cache_all_collections(indexer)
+
+      expect(a_request(:get, 'https://dataspace-staging.princeton.edu/rest/communities/267/collections')).to have_been_made
+      expect(a_request(:get, 'https://dataspace-staging.princeton.edu/rest/communities/')).to have_been_made
+    end
+  end
+
+  context 'within the production environment' do
+    let(:community_json) do
+      {
+        "id": 267,
+        "name": 'Princeton University Undergraduate Senior Theses, 1924-2021',
+        "handle": '88435/dsp019c67wm88m',
+        "type": 'community',
+        "link": '/rest/communities/267',
+        "expand": %w[
+          parentCommunity
+          collections
+          subCommunities
+          logo
+          all
+        ],
+        "logo": nil,
+        "parentCommunity": nil,
+        "copyrightText": '',
+        "introductoryText": "<h4>Members of the Princeton community wishing to view a senior thesis from 2014-2021 while away from campus should follow the instructions outlined on the <a href=\"https://princeton.service-now.com/snap?sys_id=6023&id=kb_article\">OIT website</a> for connecting to campus resources remotely. </h4>\r\n<h5>\r\nSee our <a href=\"http://libguides.princeton.edu/SeniorTheses/Home/\">Senior Thesis LibGuide</a> for helfpul information on searching and accessing Senior Theses</h5>",
+        "shortDescription": '',
+        "sidebarText": '',
+        "countItems": 70_734,
+        "subcommunities": [],
+        "collections": []
+      }
+    end
+    let(:communities_response_json) do
+      [
+        community_json
+      ]
+    end
+    let(:communities_response_body) do
+      JSON.generate(communities_response_json)
+    end
+    let(:collections_response_json) { [] }
+    let(:collections_response_body) do
+      JSON.generate(collections_response_json)
+    end
+
+    before do
+      @env = ENV['ORANGETHESES_ENV']
+      ENV['ORANGETHESES_ENV'] = 'production'
+
+      stub_request(:get, 'https://dataspace.princeton.edu/rest/communities/').to_return(status: 200, body: communities_response_body)
+      stub_request(:get, 'https://dataspace.princeton.edu/rest/communities/267/collections').to_return(status: 200, body: collections_response_body)
+    end
+
+    after do
+      # rubocop:disable RSpec/InstanceVariable
+      ENV['ORANGETHESES_ENV'] = @env
+      # rubocop:enable RSpec/InstanceVariable
+    end
+
+    it 'requests from the production URI endpoint' do
+      fetcher.cache_all_collections(indexer)
+
+      expect(a_request(:get, 'https://dataspace.princeton.edu/rest/communities/267/collections')).to have_been_made
+      expect(a_request(:get, 'https://dataspace.princeton.edu/rest/communities/')).to have_been_made
     end
   end
 end
