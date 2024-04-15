@@ -91,7 +91,7 @@ module Orangetheses
       solr_server ||= self.class.default_solr_url
 
       @tmpdir = Dir.mktmpdir
-      @solr = RSolr.connect(url: solr_server, read_timeout: 120, open_timeout: 120)
+      @solr = RSolr.connect(url: solr_server, timeout: 120, open_timeout: 120)
       @logger = Logger.new($stdout)
       @logger.level = Logger::INFO
       @logger.formatter = proc do |severity, datetime, _progname, msg|

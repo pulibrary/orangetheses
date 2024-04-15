@@ -8,6 +8,7 @@ require 'json'
 require 'iso-639'
 require 'yaml'
 require 'erb'
+require 'ostruct'
 
 module Orangetheses
   class Indexer

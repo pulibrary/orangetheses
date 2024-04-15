@@ -30,7 +30,7 @@ module Orangetheses
     end
 
     def embargo_date_fields
-      @embargo_date_fields ||= (embargo_lift_field || embargo_terms_field)
+      @embargo_date_fields ||= embargo_lift_field || embargo_terms_field
     end
 
     def embargo_date_field
