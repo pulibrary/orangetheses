@@ -6,6 +6,7 @@ require 'tmpdir'
 require 'openssl'
 require 'retriable'
 require 'logger'
+require 'pry'
 
 # Do not fail if SSL negotiation with DSpace isn't working
 OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
@@ -218,7 +219,14 @@ module Orangetheses
       @api_communities ||= begin
         response = api_client.get("#{@server}/communities/")
         response.body
+      rescue StandardError => e
+        Faraday.logger.warn(e)
+        '[]'
       end
+    end
+
+    def json_api_communities
+      @json_api_communities ||= JSON.parse(api_communities)
     end
 
     ##
@@ -226,7 +234,9 @@ module Orangetheses
     # community that matches the handle.
     # @return [JSON] a json representation of the DSpace community
     def api_community
-      @api_community ||= JSON.parse(api_communities).find { |c| c['handle'] == @community }
+      return if json_api_communities.empty?
+
+      @api_community ||= json_api_communities.find { |c| c['handle'] == @community }
     end
 
     ##

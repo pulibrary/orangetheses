@@ -5,7 +5,7 @@ jobs:
     working_directory: ~/orangetheses
 
     docker:
-      - image: cimg/ruby:3.1-browsers
+      - image: cimg/ruby:3.2-browsers
         environment:
           RAILS_ENV: test
 
@@ -59,7 +59,7 @@ jobs:
     working_directory: ~/orangetheses
 
     docker:
-      - image: cimg/ruby:3.1-browsers
+      - image: cimg/ruby:3.2-browsers
         environment:
           RAILS_ENV: test
 
