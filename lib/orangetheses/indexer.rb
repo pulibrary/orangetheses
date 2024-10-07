@@ -331,8 +331,33 @@ module Orangetheses
     end
 
     def on_site_only?(doc)
-      doc.key?('pu.location') || doc.key?('dc.rights.accessRights') ||
-        embargo?(doc) || walkin?(doc)
+      output = false
+
+      has_location = doc.key?('pu.location')
+      output ||= has_location
+
+      has_rights = doc.key?('pu.rights.accessRights')
+      output ||= has_rights
+
+      output ||= walkin?(doc)
+
+      if output
+        values = doc.fetch('dc.date.accessioned', [])
+        output = if !values.empty?
+                   accessioned = values.first
+                   accession_date = DateTime.parse(accessioned)
+
+                   # For theses, there is no physical copy since 2013
+                   # anything 2012 and prior have a physical copy
+                   # @see https://github.com/pulibrary/orangetheses/issues/76
+                   accession_date.year < 2013
+                 else
+                   false
+                 end
+      end
+
+      output ||= embargo?(doc)
+      output
     end
 
     def embargo?(doc)
@@ -453,23 +478,29 @@ module Orangetheses
 
     # online access when there isn't a restriction/location note
     def holdings_access(doc)
-      if embargo?(doc)
-        {
+      # This handles cases for items in the Mudd Library
+      doc_embargoed = embargo?(doc)
+      doc_on_site_only = on_site_only?(doc)
+
+      if doc_embargoed || doc_on_site_only
+        output = {
           'location' => 'Mudd Manuscript Library',
           'location_display' => 'Mudd Manuscript Library',
           'location_code_s' => 'mudd$stacks',
-          'advanced_location_s' => ['mudd$stacks', 'Mudd Manuscript Library'],
-          'holdings_1display' => physical_holding(doc, accessible: false)
+          'advanced_location_s' => ['mudd$stacks', 'Mudd Manuscript Library']
         }
-      elsif on_site_only?(doc)
-        {
-          'location' => 'Mudd Manuscript Library',
-          'location_display' => 'Mudd Manuscript Library',
-          'location_code_s' => 'mudd$stacks',
-          'advanced_location_s' => ['mudd$stacks', 'Mudd Manuscript Library'],
-          'access_facet' => 'In the Library',
-          'holdings_1display' => physical_holding(doc)
-        }
+
+        if doc_embargoed
+          access_facet = nil
+          holdings_display = physical_holding(doc, accessible: false)
+        else
+          access_facet = 'In the Library'
+          holdings_display = physical_holding(doc)
+        end
+
+        output['access_facet'] = access_facet
+        output['holdings_1display'] = holdings_display
+        output
       else
         {
           'access_facet' => 'Online',
