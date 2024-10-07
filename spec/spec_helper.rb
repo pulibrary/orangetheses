@@ -3,7 +3,6 @@
 require 'bundler/setup'
 require 'coveralls'
 require 'orangetheses'
-require 'pry-byebug'
 require 'simplecov'
 require 'webmock/rspec'
 
