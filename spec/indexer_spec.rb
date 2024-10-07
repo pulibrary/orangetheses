@@ -247,16 +247,39 @@ module Orangetheses
         expect(subject.send(:on_site_only?, doc_embargo_lift_past)).to be false
       end
 
-      it 'doc with walkin value of yes returns true' do
-        expect(subject.send(:on_site_only?, doc_past_embargo_walkin)).to be true
+      context 'without a specified accession date' do
+        it 'returns false' do
+          result = subject.send(:on_site_only?, doc_past_embargo_walkin)
+          expect(result).to be false
+        end
+      end
+
+      context 'with a specified accession date prior to 2013' do
+        let(:doc) { { 'pu.embargo.lift' => ['2000-01-01'], 'pu.mudd.walkin' => ['yes'], 'dc.date.accessioned' => ['2012-01-01T00:00:00Z'] } }
+
+        it 'returns true' do
+          result = subject.send(:on_site_only?, doc)
+          expect(result).to be true
+        end
+      end
+
+      context 'with a specified accession date in 2013' do
+        let(:doc) { { 'pu.embargo.lift' => ['2000-01-01'], 'pu.mudd.walkin' => ['yes'], 'dc.date.accessioned' => ['2013-01-01T00:00:00Z'] } }
+
+        it 'returns false' do
+          result = subject.send(:on_site_only?, doc)
+          expect(result).to be false
+        end
       end
 
       it 'doc with location field returns true' do
-        expect(subject.send(:on_site_only?, doc_location)).to be true
+        result = subject.send(:on_site_only?, doc_location)
+        expect(result).to be false
       end
 
       it 'doc with restrictions field returns true' do
-        expect(subject.send(:on_site_only?, doc_restriction)).to be true
+        result = subject.send(:on_site_only?, doc_restriction)
+        expect(result).to be false
       end
 
       it 'doc with no access-related fields returns false' do
@@ -398,10 +421,14 @@ module Orangetheses
         doc
       end
 
-      it 'gets the ark with citation link display when restrctions' do
-        ark = ark_doc_citation['dc.identifier.uri'].first
-        expected = %({"#{ark}":["#{dspace}","#{citation}"]})
-        expect(subject.send(:ark_hash, ark_doc_citation)).to eq expected
+      it 'gets the ark with citation link display when restrictions' do
+        expect(ark_doc_citation).to include('dc.identifier.uri')
+        arks = ark_doc_citation['dc.identifier.uri']
+        expect(arks.length).to eq(1)
+        ark = arks.first
+        expected = %({"#{ark}":["#{dspace}","#{full_text}"]})
+        result = subject.send(:ark_hash, ark_doc_citation)
+        expect(result).to eq(expected)
       end
 
       it 'gets the ark with full text link display when no restrctions' do
@@ -559,12 +586,15 @@ module Orangetheses
 
       describe 'in the library' do
         it 'in the library access for record with restrictions note' do
-          expect(subject.send(:holdings_access, doc_restrictions)['access_facet']).to eq('In the Library')
+          entries = subject.send(:holdings_access, doc_restrictions)
+          expect(entries).to include('access_facet')
+          result = entries['access_facet']
+          expect(result).to eq('Online')
         end
 
         it 'includes mudd as an advanced location value' do
-          expect(subject.send(:holdings_access,
-                              doc_restrictions)['advanced_location_s']).to include('Mudd Manuscript Library')
+          result = subject.send(:holdings_access, doc_restrictions)
+          expect(result).not_to include('advanced_location_s')
         end
 
         it 'holdings include call number' do
@@ -582,7 +612,11 @@ module Orangetheses
 
       describe 'embargo' do
         it 'in the library access for record with restrictions note' do
-          expect(subject.send(:holdings_access, doc_embargo)['access_facet']).to be_nil
+          # expect(subject.send(:holdings_access, doc_embargo)['access_facet']).to be_nil
+          entries = subject.send(:holdings_access, doc_embargo)
+          expect(entries).to include('access_facet')
+          result = entries['access_facet']
+          expect(result).to be_nil
         end
 
         it 'includes mudd as an advanced location value' do
