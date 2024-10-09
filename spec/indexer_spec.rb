@@ -391,7 +391,7 @@ module Orangetheses
             expect(solr_document).to be_a(DataspaceDocument)
             expect(values).to be_a(Hash)
             expect(values).to include('restrictions_note_display')
-            expect(values['restrictions_note_display']).to eq(['restriction'])
+            expect(values['restrictions_note_display']).to eq("Walk-in Access. This thesis can only be viewed on computer terminals at the '<a href=\"http://mudd.princeton.edu\">Mudd Manuscript Library</a>.")
           end
         end
       end

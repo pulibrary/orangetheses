@@ -131,7 +131,7 @@ module Orangetheses
         'pu.embargo.lift' => embargo_lift,
         'pu.embargo.terms' => embargo_terms,
         'pu.mudd.walkin' => walkin,
-        'pu.location' => location,
+        'restrictions_note_display' => location,
         'dc.rights.accessRights' => access_rights,
         'call_number_display' => call_number_display,
         'call_number_browse_s' => call_number_browse_s,

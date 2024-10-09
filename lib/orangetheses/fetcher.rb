@@ -35,7 +35,7 @@ module Orangetheses
     end
 
     def self.env
-      ENV['ORANGETHESES_ENV'] || 'development'
+      ENV['RAILS_ENV'] || 'development'
     end
 
     def self.env_config
