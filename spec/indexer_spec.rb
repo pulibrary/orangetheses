@@ -671,4 +671,27 @@ module Orangetheses
       end
     end
   end
+
+  describe '#embargo' do
+    subject(:indexer) { Indexer.new }
+
+    let(:lift) { DateTime.now.iso8601 }
+    let(:terms) { DateTime.now.iso8601 }
+    let(:doc) do
+      {
+        'pu.embargo.lift' => [lift],
+        'pu.embargo.terms' => [terms]
+      }
+    end
+
+    it 'determines whether or not an item is under embargo' do
+      solr_document = indexer.build_solr_document(**doc)
+
+      expect(solr_document).not_to be nil
+      expect(solr_document.key?('pu.embargo.lift')).to be true
+      expect(solr_document['pu.embargo.lift']).to eq([lift])
+      expect(solr_document.key?('pu.embargo.terms')).to be true
+      expect(solr_document['pu.embargo.terms']).to eq([terms])
+    end
+  end
 end
