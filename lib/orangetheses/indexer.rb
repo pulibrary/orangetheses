@@ -131,7 +131,7 @@ module Orangetheses
         'pu.embargo.lift' => embargo_lift,
         'pu.embargo.terms' => embargo_terms,
         'pu.mudd.walkin' => walkin,
-        'pu.location' => location,
+        'restrictions_note_display' => location,
         'dc.rights.accessRights' => access_rights,
         'call_number_display' => call_number_display,
         'call_number_browse_s' => call_number_browse_s,
@@ -387,22 +387,45 @@ module Orangetheses
       !walkin.nil? && walkin.first == 'yes'
     end
 
-    def restrictions_display_text(doc)
-      if embargo?(doc)
-        date = embargo(doc)
-        "This content is embargoed until #{date}. For more information contact the "\
-        "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc['id']}\"> "\
-        'Mudd Manuscript Library</a>.'
-      elsif doc.key?('pu.location') || doc.key?('dc.rights.accessRights')
-        [doc['pu.location'], doc['dc.rights.accessRights']].flatten.compact
-      elsif walkin?(doc)
-        walkin_text
-      end
+    def build_embargo_text(doc)
+      embargo_date = embargo(doc)
+      doc_id = doc['id']
+      "This content is embargoed until #{embargo_date}. For more information contact the "\
+      "<a href=\"mailto:dspadmin@princeton.edu?subject=Regarding embargoed DataSpace Item 88435/#{doc_id}\"> "\
+      'Mudd Manuscript Library</a>.'
     end
 
     def walkin_text
       'Walk-in Access. This thesis can only be viewed on computer terminals at the '\
       '<a href=\"http://mudd.princeton.edu\">Mudd Manuscript Library</a>.'
+    end
+
+    def restrictions_display_text(doc)
+      if embargo?(doc)
+        output = build_embargo_text(doc)
+
+        return output
+      end
+
+      if walkin?(doc)
+        output = walkin_text
+
+        return output
+      end
+
+      fields = []
+      if doc.key?('pu.location')
+        field = doc['pu.location']
+        fields << field
+      end
+
+      if doc.key?('dc.rights.accessRights')
+        field = doc['pu.rights.accessRights']
+        fields << field
+      end
+
+      flattened = fields.flatten
+      flattened.compact
     end
 
     def dataspace

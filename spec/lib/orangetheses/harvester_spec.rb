@@ -20,13 +20,13 @@ describe Orangetheses::Harvester do
   end
 
   describe '#harvest_all' do
-    xit 'harvests all of the DSpace Items using the OAI-PMH' do
+    it 'harvests all of the DSpace Items using the OAI-PMH' do
       # @todo Implemented
     end
   end
 
   describe '#index_all' do
-    xit 'harvests all of the DSpace Items using the OAI-PMH and indexes these into Solr' do
+    it 'harvests all of the DSpace Items using the OAI-PMH and indexes these into Solr' do
       # @todo Implemented
     end
   end
