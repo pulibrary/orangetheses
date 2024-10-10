@@ -244,7 +244,9 @@ module Orangetheses
     # Get all of the collections for a given community
     def api_collections
       @api_collections ||= begin
-        response = api_client.get("#{@server}/communities/#{api_community_id}/collections")
+        collections_url = "#{@server}/communities/#{api_community_id}/collections"
+        logger.info("Querying #{collections_url} for the collections...")
+        response = api_client.get(collections_url)
         response.body
       end
     end
