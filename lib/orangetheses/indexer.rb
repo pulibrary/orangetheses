@@ -114,12 +114,6 @@ module Orangetheses
       language_facet = code_to_language(language_iso)
       language_name_display = language_facet
 
-      values['pu.embargo.lift']
-      values['pu.embargo.terms']
-      values['pu.mudd.walkin']
-      location = values['pu.location']
-      values['dc.rights.accessRights']
-
       attrs = {
         'id' => id,
         'title_t' => title_t,
@@ -128,7 +122,7 @@ module Orangetheses
         'title_sort' => title_sort,
         'author_sort' => author_sort,
         'electronic_access_1display' => electronic_access_1display,
-        'restrictions_note_display' => location,
+        'restrictions_note_display' => restrictions_display_text(values),
         'call_number_display' => call_number_display,
         'call_number_browse_s' => call_number_browse_s,
         'language_facet' => language_facet,
@@ -137,11 +131,11 @@ module Orangetheses
       mapped = map_rest_non_special_to_solr(values)
       attrs.merge!(mapped)
 
-      holdings = holdings_access(values)
-      attrs.merge!(holdings)
-
       class_years = class_year_fields(values)
       attrs.merge!(class_years)
+
+      holdings = holdings_access(values)
+      attrs.merge!(holdings)
 
       attrs.merge!(HARD_CODED_TO_ADD)
 
@@ -338,20 +332,18 @@ module Orangetheses
       output ||= walkin?(doc)
 
       if output
-        values = doc.fetch('dc.date.accessioned', [])
+        values = doc.fetch('pu.date.classyear', [])
         output = if !values.empty?
-                   accessioned = values.first
-                   accession_date = DateTime.parse(accessioned)
 
+                   classyear = values.first
                    # For theses, there is no physical copy since 2013
                    # anything 2012 and prior have a physical copy
                    # @see https://github.com/pulibrary/orangetheses/issues/76
-                   accession_date.year < 2013
+                   classyear.to_i < 2013
                  else
                    false
                  end
       end
-
       output ||= embargo?(doc)
       output
     end
@@ -370,8 +362,6 @@ module Orangetheses
     end
 
     def embargo(doc)
-      return if doc.key?('pu.embargo.lift')
-
       date = doc['pu.embargo.lift'] || doc['pu.embargo.terms']
       date = Chronic.parse(date.first) unless date.nil?
       date = date.strftime('%B %-d, %Y') unless date.nil?

@@ -255,7 +255,7 @@ module Orangetheses
       end
 
       context 'with a specified accession date prior to 2013' do
-        let(:doc) { { 'pu.embargo.lift' => ['2000-01-01'], 'pu.mudd.walkin' => ['yes'], 'dc.date.accessioned' => ['2012-01-01T00:00:00Z'] } }
+        let(:doc) { { 'pu.embargo.lift' => ['2000-01-01'], 'pu.mudd.walkin' => ['yes'], 'pu.date.classyear' => ['2012-01-01T00:00:00Z'] } }
 
         it 'returns true' do
           result = subject.send(:on_site_only?, doc)
@@ -264,7 +264,7 @@ module Orangetheses
       end
 
       context 'with a specified accession date in 2013' do
-        let(:doc) { { 'pu.embargo.lift' => ['2000-01-01'], 'pu.mudd.walkin' => ['yes'], 'dc.date.accessioned' => ['2013-01-01T00:00:00Z'] } }
+        let(:doc) { { 'pu.embargo.lift' => ['2000-01-01'], 'pu.mudd.walkin' => ['yes'], 'pu.date.classyear' => ['2013-01-01T00:00:00Z'] } }
 
         it 'returns false' do
           result = subject.send(:on_site_only?, doc)
