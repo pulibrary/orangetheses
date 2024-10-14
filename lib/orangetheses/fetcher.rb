@@ -257,6 +257,9 @@ module Orangetheses
       @api_collections_json ||= JSON.parse(api_collections)
     end
 
+    # example to debug using a specific collection id.
+    # @collections ||= api_collections_json.map { |i| i['id'] = '2666' }
+    # https://dataspace-dev.princeton.edu/rest/collections/2666/items
     def collections
       @collections ||= api_collections_json.map { |i| i['id'] }
     end
