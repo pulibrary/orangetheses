@@ -143,8 +143,8 @@ describe Orangetheses::Fetcher do
     end
 
     before do
-      @env = ENV['ORANGETHESES_ENV']
-      ENV['ORANGETHESES_ENV'] = 'staging'
+      @env = ENV['RAILS_ENV']
+      ENV['RAILS_ENV'] = 'staging'
 
       stub_request(:get, 'https://dataspace-staging.princeton.edu/rest/communities/').to_return(status: 200, body: communities_response_body)
       stub_request(:get, 'https://dataspace-staging.princeton.edu/rest/communities/267/collections').to_return(status: 200, body: collections_response_body)
@@ -152,7 +152,7 @@ describe Orangetheses::Fetcher do
 
     after do
       # rubocop:disable RSpec/InstanceVariable
-      ENV['ORANGETHESES_ENV'] = @env
+      ENV['RAILS_ENV'] = @env
       # rubocop:enable RSpec/InstanceVariable
     end
 
@@ -204,8 +204,8 @@ describe Orangetheses::Fetcher do
     end
 
     before do
-      @env = ENV['ORANGETHESES_ENV']
-      ENV['ORANGETHESES_ENV'] = 'production'
+      @env = ENV['RAILS_ENV']
+      ENV['RAILS_ENV'] = 'production'
 
       stub_request(:get, 'https://dataspace.princeton.edu/rest/communities/').to_return(status: 200, body: communities_response_body)
       stub_request(:get, 'https://dataspace.princeton.edu/rest/communities/267/collections').to_return(status: 200, body: collections_response_body)
@@ -213,7 +213,7 @@ describe Orangetheses::Fetcher do
 
     after do
       # rubocop:disable RSpec/InstanceVariable
-      ENV['ORANGETHESES_ENV'] = @env
+      ENV['RAILS_ENV'] = @env
       # rubocop:enable RSpec/InstanceVariable
     end
 

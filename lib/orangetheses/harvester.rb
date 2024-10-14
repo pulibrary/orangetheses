@@ -59,10 +59,12 @@ module Orangetheses
       dirs
     end
 
-    # @return [Array<String>]
+    # Index all records into the Solr Collection
     def index_all(indexer)
       client.list_records(headers).full.each_with_index do |record, _i|
         indexer.index(record.metadata)
+      rescue StandardError => e
+        Rails.logger.warn("Error indexing the OAI-PMH record #{record.metadata}: #{e}")
       end
     end
 

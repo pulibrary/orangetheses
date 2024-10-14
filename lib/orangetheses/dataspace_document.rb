@@ -13,6 +13,14 @@ module Orangetheses
       @logger = logger
     end
 
+    def key?(value)
+      document.key?(value)
+    end
+
+    def [](value)
+      document[value]
+    end
+
     def id
       document['id']
     end
