@@ -114,11 +114,11 @@ module Orangetheses
       language_facet = code_to_language(language_iso)
       language_name_display = language_facet
 
-      embargo_lift = values['pu.embargo.lift']
-      embargo_terms = values['pu.embargo.terms']
-      walkin = values['pu.mudd.walkin']
+      values['pu.embargo.lift']
+      values['pu.embargo.terms']
+      values['pu.mudd.walkin']
       location = values['pu.location']
-      access_rights = values['dc.rights.accessRights']
+      values['dc.rights.accessRights']
 
       attrs = {
         'id' => id,
@@ -128,11 +128,7 @@ module Orangetheses
         'title_sort' => title_sort,
         'author_sort' => author_sort,
         'electronic_access_1display' => electronic_access_1display,
-        'pu.embargo.lift' => embargo_lift,
-        'pu.embargo.terms' => embargo_terms,
-        'pu.mudd.walkin' => walkin,
         'restrictions_note_display' => location,
-        'dc.rights.accessRights' => access_rights,
         'call_number_display' => call_number_display,
         'call_number_browse_s' => call_number_browse_s,
         'language_facet' => language_facet,
