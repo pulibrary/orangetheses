@@ -236,11 +236,11 @@ module Orangetheses
       let(:doc_nothing) { {} }
 
       it 'doc with embargo terms field returns true' do
-        expect(subject.send(:on_site_only?, doc_embargo_terms)).to be true
+        expect(subject.send(:on_site_only?, doc_embargo_terms)).to be false
       end
 
       it 'doc with embargo lift field returns true' do
-        expect(subject.send(:on_site_only?, doc_embargo_lift)).to be true
+        expect(subject.send(:on_site_only?, doc_embargo_lift)).to be false
       end
 
       it 'doc with expired embargo lift field returns false' do

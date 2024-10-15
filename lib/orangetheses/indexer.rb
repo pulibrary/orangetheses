@@ -331,6 +331,10 @@ module Orangetheses
 
       output ||= walkin?(doc)
 
+      # we might not need this check
+      # since we're checking in `def holding_access` for `if doc_embargoed || doc_on_site_only`
+      output ||= embargo?(doc)
+
       if output
         values = doc.fetch('pu.date.classyear', [])
         output = if !values.empty?
@@ -344,7 +348,7 @@ module Orangetheses
                    false
                  end
       end
-      output ||= embargo?(doc)
+
       output
     end
 
