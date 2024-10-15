@@ -605,7 +605,7 @@ module Orangetheses
 
       describe 'embargo' do
         it 'in the library access for record with restrictions note' do
-          # expect(subject.send(:holdings_access, doc_embargo)['access_facet']).to be_nil
+          expect(subject.send(:holdings_access, doc_embargo)['access_facet']).to be_nil
           entries = subject.send(:holdings_access, doc_embargo)
           expect(entries).to include('access_facet')
           result = entries['access_facet']

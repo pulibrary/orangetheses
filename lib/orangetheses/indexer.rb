@@ -491,25 +491,26 @@ module Orangetheses
       doc_embargoed = embargo?(doc)
       doc_on_site_only = on_site_only?(doc)
 
-      if doc_embargoed || doc_on_site_only
-        output = {
+      if doc_embargoed
+        {
           'location' => 'Mudd Manuscript Library',
           'location_display' => 'Mudd Manuscript Library',
           'location_code_s' => 'mudd$stacks',
+          'advanced_location_s' => ['mudd$stacks', 'Mudd Manuscript Library'],
+          'access_facet' => nil,
+          'holdings_1display' => nil,
           'advanced_location_s' => ['mudd$stacks', 'Mudd Manuscript Library']
         }
+      elsif doc_on_site_only
+        {
+          'location' => 'Mudd Manuscript Library',
+          'location_display' => 'Mudd Manuscript Library',
+          'location_code_s' => 'mudd$stacks',
+          'advanced_location_s' => ['mudd$stacks', 'Mudd Manuscript Library'],
+          'access_facet' => 'In the Library',
+          'holdings_1display' => physical_holding(doc)
+        }
 
-        if doc_embargoed
-          access_facet = nil
-          holdings_display = physical_holding(doc, accessible: false)
-        else
-          access_facet = 'In the Library'
-          holdings_display = physical_holding(doc)
-        end
-
-        output['access_facet'] = access_facet
-        output['holdings_1display'] = holdings_display
-        output
       else
         {
           'access_facet' => 'Online',
