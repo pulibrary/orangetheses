@@ -25,4 +25,6 @@ def lando_env_path
   )
 end
 
-require lando_env_path
+# Set up a development environment unless we are within a Rails application, which presumably
+# has its own development environment
+require lando_env_path unless defined? Rails
